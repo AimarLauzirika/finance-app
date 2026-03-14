@@ -1,72 +1,116 @@
-import React, { useReducer } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { FinanceState, FinanceAction, Transaction } from '../types';
+import type { FinanceState, Transaction } from '../types';
 import { FinanceContext } from './FinanceContextObject';
-
-// Reducer function
-const financeReducer = (state: FinanceState, action: FinanceAction): FinanceState => {
-  switch (action.type) {
-    case 'SET_INITIAL_CAPITAL':
-      return { ...state, initialCapital: action.payload };
-    case 'SET_INITIAL_CAPITAL_DATE':
-      return { ...state, initialCapitalDate: action.payload };
-    // case 'SET_BALANCE_AFTER':
-    //   return { ...state, transactions: state.transactions.map(t => t.type === 'initial' ? { ...t, balanceAfter: action.payload } : t) };
-    case 'ADD_TRANSACTION':
-      { const newTransaction: Transaction = {
-        ...action.payload,
-        id: Date.now().toString(), // Simple ID generation
-      };
-      return { ...state, transactions: [...state.transactions, newTransaction] }; }
-    case 'DELETE_TRANSACTION':
-      return {
-        ...state,
-        transactions: state.transactions.filter(t => t.id !== action.payload),
-      };
-    default:
-      return state;
-  }
-};
+import transactionsData from '../data/transactions.json';
 
 // Initial state
+const parsedState = JSON.parse(localStorage.getItem('financeState') || '{}');
 const initialState: FinanceState = {
-  initialCapital: 2000,
-  initialCapitalDate: '2026-01-01',
+  initialCapital: parsedState.transactions.find((t: Transaction) => t.type === 'initial').amount,
+  initialCapitalDate: parsedState.transactions.find((t: Transaction) => t.type === 'initial').date,
   transactions: [],
 };
-const initialTransactionsData: Transaction[] = [
-  {type: 'initial', id: new Date('2026-01-01').getTime().toString(), amount: 2000, description: 'Capital Inicial', date: '2026-01-01', balanceAfter: 2000},
-  {type: 'expense', id: new Date('2026-02-01').getTime().toString(), amount: 49, description: 'AF1 Eval', date: '2026-02-01', balanceAfter: 1951},
-  {type: 'expense', id: new Date('2026-02-02').getTime().toString(), amount: 49, description: 'AF2 Eval', date: '2026-02-02', balanceAfter: 1902},
-  {type: 'expense', id: new Date('2026-02-05').getTime().toString(), amount: 49, description: 'AF2 Activación', date: '2026-02-05', balanceAfter: 1853},
-  {type: 'income', id: new Date('2026-02-20').getTime().toString(), amount: 175, description: 'AF2 Retiro', date: '2026-02-20', balanceAfter: 1853}
-]
-initialTransactionsData.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-initialTransactionsData.forEach((transaction, index) => {
-  if (index === 0) {
-    transaction.balanceAfter = transaction.amount;
-  } else {
-    const previousTransaction = initialTransactionsData[index - 1];
-    transaction.balanceAfter = previousTransaction.balanceAfter + (transaction.type === 'income' ? transaction.amount : -transaction.amount);
+
+// Load initial data from JSON if no localStorage
+const getInitialData = (): Transaction[] => {
+  const saved = localStorage.getItem('financeState');
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    return parsed.transactions || [];
   }
-  initialState.transactions.push(transaction);
-});
+  // If no saved data, use JSON data
+  const initialTransactionsData: Transaction[] = transactionsData as Transaction[];
+  initialTransactionsData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  let balance = 0;
+  initialTransactionsData.forEach((transactionData) => {
+    balance += transactionData.type === 'income' || transactionData.type === 'initial' ? transactionData.amount : -transactionData.amount;
+    transactionData.balanceAfter = balance;
+  });
+  return initialTransactionsData;
+};
 
 
 // Provider component
 export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(financeReducer, initialState);
+  const [state, setState] = useState<FinanceState>(() => ({
+    ...initialState,
+    transactions: getInitialData(),
+  }));
 
-  // Helper functions
+  useEffect(() => {
+    localStorage.setItem('financeState', JSON.stringify(state));
+  }, [state]);
+
+  // Compute and return a new transactions array with updated `balanceAfter`
+  const computeBalanceAfter = (transactions: Transaction[]): Transaction[] => {
+    const sortedTransactions = [...transactions].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+
+    let balance = 0;
+    return sortedTransactions.map(t => {
+      balance += t.type === 'income' || t.type === 'initial' ? t.amount : -t.amount;
+      return { ...t, balanceAfter: balance };
+    });
+  };
+
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
-    dispatch({ type: 'ADD_TRANSACTION', payload: transaction });
+    const newTransaction: Transaction = {
+      ...transaction,
+      id: Date.now().toString(),
+    };
+
+    setState(prev => {
+      const updatedTransactions = computeBalanceAfter([...prev.transactions, newTransaction]);
+      return {
+        ...prev,
+        transactions: updatedTransactions,
+      };
+    });
+
+    return newTransaction;
   };
 
   const deleteTransaction = (id: string) => {
-    dispatch({ type: 'DELETE_TRANSACTION', payload: id });
+    setState(prev => {
+      const updatedTransactions = computeBalanceAfter(prev.transactions.filter(t => t.id !== id));
+      return {
+        ...prev,
+        transactions: updatedTransactions,
+      };
+    });
   };
 
-  // Calculate balance
+  const setInitialCapital = (capital: number, date: string) => {
+    setState(prev => {
+      const updatedTransactions = computeBalanceAfter(
+        prev.transactions.map(t => (t.type === 'initial' ? { ...t, amount: capital, date } : t)),
+      );
+      initialState.initialCapital = capital;
+      initialState.initialCapitalDate = date;
+
+      return {
+        ...prev,
+        initialCapital: capital,
+        initialCapitalDate: date,
+        transactions: updatedTransactions,
+      };
+    });
+  };
+
+
+  // useEffect(() => {
+  //   console.log('updating.............')
+  //   let balance = 0;
+  //   const updatedTransactions = state.transactions.map(t => {
+  //     balance += t.type === 'income' || t.type === 'initial' ? t.amount : -t.amount;
+  //     return { ...t, balanceAfter: balance };
+  //   });
+  //   setState(prev => ({ ...prev, transactions: updatedTransactions }));
+  // }, [state.transactions, state.initialCapital]);
+
+  // Calculate balance and profit
   const totalIncome = state.transactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
@@ -77,7 +121,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const profit = totalIncome - totalExpense;
 
   return (
-    <FinanceContext.Provider value={{ state, dispatch, addTransaction, deleteTransaction, balance, profit, transactionFormVisible: false, initialCapitalFormVisible: false, transactionListVisible: true }}>
+    <FinanceContext.Provider value={{ state, addTransaction, deleteTransaction, setInitialCapital, balance, profit, transactionFormVisible: false, initialCapitalFormVisible: false, transactionListVisible: true }}>
       {children}
     </FinanceContext.Provider>
   );

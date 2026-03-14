@@ -5,7 +5,7 @@ import TransactionItem from './TransactionItem';
 
 const TransactionList: React.FC = () => {
   const { state } = useFinance();
-  const [transactionListVisible, setTransactionListVisible] = useState(false);
+  const [transactionListVisible, setTransactionListVisible] = useState(true);
 
   // Sort transactions by date descending
   const sortedTransactions = [...state.transactions].sort((a, b) =>

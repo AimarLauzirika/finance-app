@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Pencil } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import { formatCurrency } from '../utils/formatters';
+import BalanceChart from './BalanceChart';
 
 const BalanceDisplay: React.FC = () => {
-  const { state, dispatch, balance, profit } = useFinance();
+  const { state, setInitialCapital, balance, profit } = useFinance();
   const [newCapital, setNewCapital] = useState(state.initialCapital.toString());
   const [newCapitalDate, setNewCapitalDate] = useState(state.initialCapitalDate);
   const [initialCapitalFormVisible, setInitialCapitalFormVisible] = useState(false);
@@ -12,14 +13,7 @@ const BalanceDisplay: React.FC = () => {
   const handleSetInitialCapital = () => {
     const capital = parseFloat(newCapital);
     if (!isNaN(capital)) {
-      dispatch({ type: 'SET_INITIAL_CAPITAL', payload: capital });
-    }
-    const date = newCapitalDate;
-    dispatch({ type: 'SET_INITIAL_CAPITAL_DATE', payload: date });
-    const initialTransaction = state.transactions.find(t => t.type === 'initial');
-    if (initialTransaction) {
-      initialTransaction.amount = capital;
-      initialTransaction.date = newCapitalDate;
+      setInitialCapital(capital, newCapitalDate);
     }
   };
 
@@ -63,10 +57,10 @@ const BalanceDisplay: React.FC = () => {
       </div>
       <div className="mt-8">
         <div className='mx-auto'>
-          <label className=" text-gray-600 text-sm select-none font-medium hover:cursor-pointer" onClick={() => {setInitialCapitalFormVisible(!initialCapitalFormVisible)}}>
-            Modificar Capital Inicial {<Pencil className="inline h-4 align-top" />}
+          <label className=" text-gray-600 text-sm select-none items-center flex font-medium hover:cursor-pointer hover:text-blue-500 hover:opacity-75" onClick={() => {setInitialCapitalFormVisible(!initialCapitalFormVisible)}}>
+            Modificar Capital Inicial <span>{<Pencil className="inline h-4 ml-1" />}</span>
           </label>
-          <div className={`justify-center gap-2 mt-2 ${initialCapitalFormVisible ? 'flex' : 'hidden'}`}>
+          <div className={`justify-center gap-2 mt-6 ${initialCapitalFormVisible ? 'flex' : 'hidden'}`}>
             <input
               type="number"
               value={newCapital}
@@ -89,6 +83,9 @@ const BalanceDisplay: React.FC = () => {
             </button>
           </div>
         </div>
+      </div>
+      <div className="mt-2 mb-6">
+        <BalanceChart />
       </div>
     </div>
   );

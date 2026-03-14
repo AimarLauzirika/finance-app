@@ -15,19 +15,25 @@ export interface FinanceState {
 
 export type FinanceAction =
   | { type: 'SET_INITIAL_CAPITAL'; payload: number }
-  | { type: 'SET_INITIAL_CAPITAL_DATE'; payload: string }
+  // | { type: 'SET_INITIAL_CAPITAL_DATE'; payload: string }
   | { type: 'SET_BALANCE_AFTER'; payload: number }
   | { type: 'ADD_TRANSACTION'; payload: Omit<Transaction, 'id'> }
   | { type: 'DELETE_TRANSACTION'; payload: string };
 
 export type FinanceContextValue = {
   state: FinanceState;
-  dispatch: React.Dispatch<FinanceAction>;
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id'>) => Transaction;
   deleteTransaction: (id: string) => void;
+  setInitialCapital: (capital: number, date: string) => void;
+  // setInitialCapitalDate: (date: string) => void;
   balance: number;
   profit: number;
   transactionFormVisible: boolean;
   initialCapitalFormVisible: boolean;
   transactionListVisible: boolean;
 };
+
+// export type FinanceBalanceProgress = {
+//   date: string; // YYYY-MM-DD
+//   balance: number;
+// }[];

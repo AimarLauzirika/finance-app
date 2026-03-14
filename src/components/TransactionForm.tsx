@@ -4,7 +4,7 @@ import { useFinance } from '../hooks/useFinance';
 import { format } from 'date-fns';
 
 const TransactionForm: React.FC = () => {
-  const { addTransaction } = useFinance();
+  const { state, addTransaction } = useFinance();
   const [type, setType] = useState<'' | 'initial' | 'income' | 'expense'>('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -13,15 +13,20 @@ const TransactionForm: React.FC = () => {
 
   const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
+    // const { state } = useFinance()
+    const lastTransaction = [...state.transactions].slice(-1)[0];
+    const lastBalance = lastTransaction ? lastTransaction.balanceAfter : state.initialCapital;
+    const balanceAfter = type === 'income' ? lastBalance + parseFloat(amount) : lastBalance - parseFloat(amount);
     const numAmount = parseFloat(amount);
-    if (numAmount > 0 && description.trim()) {
+    if (numAmount > 0 && description.trim() && type !== '' && date) {
       addTransaction({
         type,
         amount: numAmount,
         description: description.trim(),
         date,
-        balanceAfter: 0, // Este valor se actualizará en el reducer al agregar la transacción
+        balanceAfter: balanceAfter,
       });
+      
       // Reset form
       setAmount('');
       setDescription('');
@@ -32,7 +37,7 @@ const TransactionForm: React.FC = () => {
 
   return (
     <div className="bg-gray-900 p-6 rounded-lg shadow-md mb-6 max-w-xl mx-auto">
-      <h2 className="text-2xl text-gray-400 font-semibold hover:cursor-pointer select-none" onClick={() => setFormVisible(!formVisible)}>
+      <h2 className="text-2xl text-gray-400 font-semibold hover:cursor-pointer hover:text-blue-500 hover:opacity-75 select-none" onClick={() => setFormVisible(!formVisible)}>
         Agregar Transacción {<Plus className="inline font-bold h-6 w-6 stroke-[3]" />}
       </h2>
       <form onSubmit={handleSubmit} className={`space-y-6 ${formVisible ? 'block' : 'hidden'} mt-6`}>

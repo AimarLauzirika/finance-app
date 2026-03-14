@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, Trash2, Play } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import type { Transaction } from '../types';
 import { formatCurrency } from '../utils/formatters';
@@ -27,9 +27,11 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
   };
 
   return (
-    <div className="flex items-center justify-between p-4 border border-gray-700 rounded-lg">
+    <div className="flex items-center justify-between p-2 border-b border-gray-700">
       <div className="flex items-center gap-3">
-        {transaction.type === 'income' ? (
+        {transaction.type === 'initial' ? (
+          <Play className="w-5 h-5 text-blue-600" />
+        ) : transaction.type === 'income' ? (
           <ArrowUp className="w-5 h-5 text-green-600" />
         ) : (
           <ArrowDown className="w-5 h-5 text-red-600" />
@@ -41,11 +43,11 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
       </div>
       <div className="flex items-center gap-3">
         <span
-          className={`font-bold ${
-            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+          className={` ${
+            transaction.type === 'initial' ? 'text-blue-600' : transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
           }`}
         >
-          {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+          {transaction.type === 'initial' ? '' : transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
         </span>
         <button
           onClick={handleDelete}

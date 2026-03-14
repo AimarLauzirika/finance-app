@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { Plus } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import { format } from 'date-fns';
 
 const TransactionForm: React.FC = () => {
   const { addTransaction } = useFinance();
-  const [type, setType] = useState<'' | 'income' | 'expense'>('');
+  const [type, setType] = useState<'' | 'initial' | 'income' | 'expense'>('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [formVisible, setFormVisible] = useState(false);
 
   const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
@@ -29,8 +31,10 @@ const TransactionForm: React.FC = () => {
 
   return (
     <div className="bg-gray-900 p-6 rounded-lg shadow-md mb-6 max-w-xl mx-auto">
-      <h2 className="text-2xl text-gray-300 font-bold mb-4">Agregar Transacción</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <h2 className="text-2xl text-gray-400 font-semibold hover:cursor-pointer select-none" onClick={() => setFormVisible(!formVisible)}>
+        Agregar Transacción {<Plus className="inline font-bold h-6 w-6 stroke-[3]" />}
+      </h2>
+      <form onSubmit={handleSubmit} className={`space-y-6 ${formVisible ? 'block' : 'hidden'} mt-6`}>
         <div className='flex gap-4'>
           <div>
             <label className="block text-gray-600 text-sm font-medium mb-2">Tipo</label>

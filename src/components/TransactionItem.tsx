@@ -42,13 +42,16 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <span
-          className={` ${
-            transaction.type === 'initial' ? 'text-blue-600' : transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-          }`}
-        >
-          {transaction.type === 'initial' ? '' : transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-        </span>
+        <div className='text-right'>
+          <span
+            className={` block ${
+              transaction.type === 'initial' ? 'text-blue-500' : transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+            }`}
+            >
+            {transaction.type === 'initial' ? '' : transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount )}
+          </span>
+          <p className="text-sm text-gray-500">Balance: <span className='text-gray-400'>{formatCurrency(transaction.balanceAfter)}</span></p>
+        </div>
         <button
           onClick={handleDelete}
           className="p-1 text-gray-400 hover:text-red-600 transition-colors"

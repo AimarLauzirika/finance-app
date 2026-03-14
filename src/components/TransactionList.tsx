@@ -12,6 +12,7 @@ const TransactionList: React.FC = () => {
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
+
   return (
     <div className="bg-gray-900 p-6 rounded-lg shadow-md max-w-xl mx-auto">
       <h2 className="text-gray-400 text-2xl font-semibold hover:cursor-pointer select-none" onClick={() => {setTransactionListVisible(!transactionListVisible)}}>Transacciones {<ChevronsUpDown className="inline h-5 w-5 stroke-[3.5]" />}</h2>

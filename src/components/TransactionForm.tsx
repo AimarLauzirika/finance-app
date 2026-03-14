@@ -20,6 +20,7 @@ const TransactionForm: React.FC = () => {
         amount: numAmount,
         description: description.trim(),
         date,
+        balanceAfter: 0, // Este valor se actualizará en el reducer al agregar la transacción
       });
       // Reset form
       setAmount('');

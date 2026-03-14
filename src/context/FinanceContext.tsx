@@ -10,6 +10,8 @@ const financeReducer = (state: FinanceState, action: FinanceAction): FinanceStat
       return { ...state, initialCapital: action.payload };
     case 'SET_INITIAL_CAPITAL_DATE':
       return { ...state, initialCapitalDate: action.payload };
+    // case 'SET_BALANCE_AFTER':
+    //   return { ...state, transactions: state.transactions.map(t => t.type === 'initial' ? { ...t, balanceAfter: action.payload } : t) };
     case 'ADD_TRANSACTION':
       { const newTransaction: Transaction = {
         ...action.payload,
@@ -30,14 +32,26 @@ const financeReducer = (state: FinanceState, action: FinanceAction): FinanceStat
 const initialState: FinanceState = {
   initialCapital: 2000,
   initialCapitalDate: '2026-01-01',
-  transactions: [
-    {type: 'initial', id: new Date('2026-01-01').getTime().toString(), amount: 2000, description: 'Capital Inicial', date: '2026-01-01'},
-    {type: 'expense', id: new Date('2026-02-01').getTime().toString(), amount: 49, description: 'AF1 Eval', date: '2026-02-01'},
-    {type: 'expense', id: new Date('2026-02-02').getTime().toString(), amount: 49, description: 'AF2 Eval', date: '2026-02-02'},
-    {type: 'expense', id: new Date('2026-02-05').getTime().toString(), amount: 49, description: 'AF2 Activación', date: '2026-02-05'},
-    {type: 'income', id: new Date('2026-02-20').getTime().toString(), amount: 175, description: 'AF2 Retiro', date: '2026-02-20'},
-  ],
+  transactions: [],
 };
+const initialTransactionsData: Transaction[] = [
+  {type: 'initial', id: new Date('2026-01-01').getTime().toString(), amount: 2000, description: 'Capital Inicial', date: '2026-01-01', balanceAfter: 2000},
+  {type: 'expense', id: new Date('2026-02-01').getTime().toString(), amount: 49, description: 'AF1 Eval', date: '2026-02-01', balanceAfter: 1951},
+  {type: 'expense', id: new Date('2026-02-02').getTime().toString(), amount: 49, description: 'AF2 Eval', date: '2026-02-02', balanceAfter: 1902},
+  {type: 'expense', id: new Date('2026-02-05').getTime().toString(), amount: 49, description: 'AF2 Activación', date: '2026-02-05', balanceAfter: 1853},
+  {type: 'income', id: new Date('2026-02-20').getTime().toString(), amount: 175, description: 'AF2 Retiro', date: '2026-02-20', balanceAfter: 1853}
+]
+initialTransactionsData.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+initialTransactionsData.forEach((transaction, index) => {
+  if (index === 0) {
+    transaction.balanceAfter = transaction.amount;
+  } else {
+    const previousTransaction = initialTransactionsData[index - 1];
+    transaction.balanceAfter = previousTransaction.balanceAfter + (transaction.type === 'income' ? transaction.amount : -transaction.amount);
+  }
+  initialState.transactions.push(transaction);
+});
+
 
 // Provider component
 export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

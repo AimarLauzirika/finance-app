@@ -4,6 +4,7 @@ export interface Transaction {
   amount: number;
   description: string;
   date: string; // YYYY-MM-DD
+  balanceAfter: number; // Se calcula al agregar la transacción
 }
 
 export interface FinanceState {
@@ -15,6 +16,7 @@ export interface FinanceState {
 export type FinanceAction =
   | { type: 'SET_INITIAL_CAPITAL'; payload: number }
   | { type: 'SET_INITIAL_CAPITAL_DATE'; payload: string }
+  | { type: 'SET_BALANCE_AFTER'; payload: number }
   | { type: 'ADD_TRANSACTION'; payload: Omit<Transaction, 'id'> }
   | { type: 'DELETE_TRANSACTION'; payload: string };
 

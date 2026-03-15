@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Pencil } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import { formatCurrency } from '../utils/formatters';
@@ -9,6 +9,12 @@ const BalanceDisplay: React.FC = () => {
   const [newCapital, setNewCapital] = useState(state.initialCapital.toString());
   const [newCapitalDate, setNewCapitalDate] = useState(state.initialCapitalDate);
   const [initialCapitalFormVisible, setInitialCapitalFormVisible] = useState(false);
+
+  // Sync inputs with current state
+  useEffect(() => {
+    setNewCapital(state.initialCapital.toString());
+    setNewCapitalDate(state.initialCapitalDate);
+  }, [state.initialCapital, state.initialCapitalDate]);
 
   const handleSetInitialCapital = () => {
     const capital = parseFloat(newCapital);

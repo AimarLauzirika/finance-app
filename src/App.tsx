@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import { FinanceProvider } from './context/FinanceContext';
 import BalanceDisplay from './components/BalanceDisplay';
+import AccountForm from './components/AccountForm';
+import AccountList from './components/AccountList';
 import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
 import Login from './components/Login';
@@ -49,13 +51,15 @@ function App() {
             <h1 className="text-4xl font-bold text-gray-200">Control de Finanzas</h1>
             <button
               onClick={() => supabase.auth.signOut()}
-              className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              className="mt-4 bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800"
             >
               Cerrar Sesión
             </button>
           </header>
           <main className="max-w-4xl mx-auto">
             <BalanceDisplay />
+            <AccountForm />
+            <AccountList />
             <TransactionForm />
             <TransactionList />
           </main>

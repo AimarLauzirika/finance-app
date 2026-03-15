@@ -3,6 +3,8 @@ import { ArrowUp, ArrowDown, Trash2, Play } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import type { Transaction } from '../types';
 import { formatCurrency } from '../utils/formatters';
+import { TRANSACTION_TYPES } from '../constants/transactionTypes';
+import { format } from 'date-fns';
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -17,15 +19,6 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
   return (
     <div className="flex items-center justify-between p-2 border-b border-gray-700">
       <div className="flex items-center gap-3">
@@ -38,13 +31,9 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
         )}
         <div>
           <p className="font-medium text-gray-300">
-            {transaction.type === 'buy_eval' ? 'Compra Evaluación' : 
-             transaction.type === 'activation_fee' ? 'Activación' : 
-             transaction.type === 'reset_account' ? 'Reset' : 
-             transaction.type === 'VPS' ? 'VPS' : 
-             transaction.type === 'payout' ? 'Pago' : transaction.type}
+            {TRANSACTION_TYPES[transaction.type]}
           </p>
-          <p className="text-sm text-gray-500">{formatDate(transaction.date)}</p>
+          <p className="text-sm text-gray-500">{format(new Date(transaction.date), 'dd/MM/yyyy')}</p>
         </div>
       </div>
       <div className="flex items-center gap-3">

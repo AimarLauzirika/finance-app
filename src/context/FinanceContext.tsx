@@ -2,45 +2,60 @@ import React, { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { FinanceState, Transaction } from '../types';
 import { FinanceContext } from './FinanceContextObject';
-import transactionsData from '../data/transactions.json';
+import { supabase } from '../lib/supabase';
 
 // Initial state
-const parsedState = JSON.parse(localStorage.getItem('financeState') || '{}');
 const initialState: FinanceState = {
-  initialCapital: parsedState.transactions.find((t: Transaction) => t.type === 'initial').amount,
-  initialCapitalDate: parsedState.transactions.find((t: Transaction) => t.type === 'initial').date,
+  initialCapital: 0,
+  initialCapitalDate: '',
   transactions: [],
 };
 
-// Load initial data from JSON if no localStorage
-const getInitialData = (): Transaction[] => {
-  const saved = localStorage.getItem('financeState');
-  if (saved) {
-    const parsed = JSON.parse(saved);
-    return parsed.transactions || [];
+// Load initial data from Supabase
+const getInitialData = async (): Promise<Transaction[]> => {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .order('date', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching transactions:', error);
+    return [];
   }
-  // If no saved data, use JSON data
-  const initialTransactionsData: Transaction[] = transactionsData as Transaction[];
-  initialTransactionsData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Compute balanceAfter
   let balance = 0;
-  initialTransactionsData.forEach((transactionData) => {
-    balance += transactionData.type === 'income' || transactionData.type === 'initial' ? transactionData.amount : -transactionData.amount;
-    transactionData.balanceAfter = balance;
+  const transactionsWithBalance = data.map((t: Transaction) => {
+    balance += t.type === 'payout' || t.type === 'initial' ? t.amount : -t.amount;
+    return {
+      id: t.id,
+      type: t.type,
+      amount: t.amount,
+      date: t.date,
+      balanceAfter: balance,
+    };
   });
-  return initialTransactionsData;
+
+  return transactionsWithBalance;
 };
 
 
 // Provider component
 export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<FinanceState>(() => ({
-    ...initialState,
-    transactions: getInitialData(),
-  }));
+  const [state, setState] = useState<FinanceState>(initialState);
 
   useEffect(() => {
-    localStorage.setItem('financeState', JSON.stringify(state));
-  }, [state]);
+    const loadData = async () => {
+      const transactions = await getInitialData();
+      const initialTransaction = transactions.find(t => t.type === 'initial');
+      setState({
+        initialCapital: initialTransaction ? initialTransaction.amount : 0,
+        initialCapitalDate: initialTransaction ? initialTransaction.date : '',
+        transactions,
+      });
+    };
+    loadData();
+  }, []);
 
   // Compute and return a new transactions array with updated `balanceAfter`
   const computeBalanceAfter = (transactions: Transaction[]): Transaction[] => {
@@ -50,15 +65,34 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     let balance = 0;
     return sortedTransactions.map(t => {
-      balance += t.type === 'income' || t.type === 'initial' ? t.amount : -t.amount;
+      balance += t.type === 'payout' || t.type === 'initial' ? t.amount : -t.amount;
       return { ...t, balanceAfter: balance };
     });
   };
 
-  const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
+  const addTransaction = async (transaction: Omit<Transaction, 'id' | 'balanceAfter'>) => {
+    const { data, error } = await supabase
+      .from('transactions')
+      .insert([{
+        type: transaction.type,
+        amount: transaction.amount,
+        date: transaction.date,
+        account_id: null, // optional
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding transaction:', error);
+      return;
+    }
+
     const newTransaction: Transaction = {
-      ...transaction,
-      id: Date.now().toString(),
+      id: data.id,
+      type: data.type,
+      amount: data.amount,
+      date: data.date,
+      balanceAfter: 0, // will be computed
     };
 
     setState(prev => {
@@ -72,7 +106,17 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     return newTransaction;
   };
 
-  const deleteTransaction = (id: string) => {
+  const deleteTransaction = async (id: string) => {
+    const { error } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting transaction:', error);
+      return;
+    }
+
     setState(prev => {
       const updatedTransactions = computeBalanceAfter(prev.transactions.filter(t => t.id !== id));
       return {
@@ -82,13 +126,61 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   };
 
-  const setInitialCapital = (capital: number, date: string) => {
+  const setInitialCapital = async (capital: number, date: string) => {
+    // Check if initial transaction exists
+    const existingInitial = state.transactions.find(t => t.type === 'initial');
+    let insertedData: Transaction;
+    if (existingInitial) {
+      // Update existing
+      const { error } = await supabase
+        .from('transactions')
+        .update({ amount: capital, date })
+        .eq('id', existingInitial.id);
+
+      if (error) {
+        console.error('Error updating initial capital:', error);
+        return;
+      }
+    } else {
+      // Insert new
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert([{
+          type: 'initial',
+          amount: capital,
+          date,
+          account_id: null,
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding initial capital:', error);
+        return;
+      }
+      insertedData = data;
+    }
+
     setState(prev => {
-      const updatedTransactions = computeBalanceAfter(
-        prev.transactions.map(t => (t.type === 'initial' ? { ...t, amount: capital, date } : t)),
-      );
-      initialState.initialCapital = capital;
-      initialState.initialCapitalDate = date;
+      let newTransactionData;
+      if (existingInitial) {
+        newTransactionData = { ...existingInitial, amount: capital, date };
+      } else {
+        newTransactionData = insertedData;
+      }
+      let newTransactions = prev.transactions;
+      if (existingInitial) {
+        newTransactions = prev.transactions.map(t => (t.type === 'initial' ? newTransactionData : t));
+      } else {
+        newTransactions = [...prev.transactions, {
+          id: newTransactionData.id,
+          type: newTransactionData.type,
+          amount: newTransactionData.amount,
+          date: newTransactionData.date,
+          balanceAfter: 0, // will be computed
+        }];
+      }
+      const updatedTransactions = computeBalanceAfter(newTransactions);
 
       return {
         ...prev,
@@ -99,23 +191,12 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   };
 
-
-  // useEffect(() => {
-  //   console.log('updating.............')
-  //   let balance = 0;
-  //   const updatedTransactions = state.transactions.map(t => {
-  //     balance += t.type === 'income' || t.type === 'initial' ? t.amount : -t.amount;
-  //     return { ...t, balanceAfter: balance };
-  //   });
-  //   setState(prev => ({ ...prev, transactions: updatedTransactions }));
-  // }, [state.transactions, state.initialCapital]);
-
   // Calculate balance and profit
   const totalIncome = state.transactions
-    .filter(t => t.type === 'income')
+    .filter(t => t.type === 'payout')
     .reduce((sum, t) => sum + t.amount, 0);
   const totalExpense = state.transactions
-    .filter(t => t.type === 'expense')
+    .filter(t => t.type !== 'payout' && t.type !== 'initial')
     .reduce((sum, t) => sum + t.amount, 0);
   const balance = state.initialCapital + totalIncome - totalExpense;
   const profit = totalIncome - totalExpense;

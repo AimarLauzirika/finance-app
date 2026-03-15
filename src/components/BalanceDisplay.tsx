@@ -18,10 +18,10 @@ const BalanceDisplay: React.FC = () => {
   };
 
   const totalIncome = state.transactions
-    .filter(t => t.type === 'income')
+    .filter(t => t.type === 'payout')
     .reduce((sum, t) => sum + t.amount, 0);
   const totalExpense = state.transactions
-    .filter(t => t.type === 'expense')
+    .filter(t => t.type !== 'payout' && t.type !== 'initial')
     .reduce((sum, t) => sum + t.amount, 0);
 
   return (

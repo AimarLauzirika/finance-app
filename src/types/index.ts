@@ -1,8 +1,7 @@
 export interface Transaction {
   id: string;
-  type: '' |'initial' | 'income' | 'expense';
+  type: 'initial' | 'buy_eval' | 'activation_fee' | 'reset_account' | 'VPS' | 'payout' | 'income' | 'expense';
   amount: number;
-  description: string;
   date: string; // YYYY-MM-DD
   balanceAfter: number; // Se calcula al agregar la transacción
 }
@@ -22,9 +21,9 @@ export type FinanceAction =
 
 export type FinanceContextValue = {
   state: FinanceState;
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => Transaction;
-  deleteTransaction: (id: string) => void;
-  setInitialCapital: (capital: number, date: string) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id' | 'balanceAfter'>) => Promise<Transaction | undefined>;
+  deleteTransaction: (id: string) => Promise<void>;
+  setInitialCapital: (capital: number, date: string) => Promise<void>;
   // setInitialCapitalDate: (date: string) => void;
   balance: number;
   profit: number;

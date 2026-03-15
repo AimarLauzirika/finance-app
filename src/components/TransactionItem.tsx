@@ -31,13 +31,19 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
       <div className="flex items-center gap-3">
         {transaction.type === 'initial' ? (
           <Play className="w-5 h-5 text-blue-600" />
-        ) : transaction.type === 'income' ? (
+        ) : transaction.type === 'payout' ? (
           <ArrowUp className="w-5 h-5 text-green-600" />
         ) : (
           <ArrowDown className="w-5 h-5 text-red-600" />
         )}
         <div>
-          <p className="font-medium text-gray-300">{transaction.description}</p>
+          <p className="font-medium text-gray-300">
+            {transaction.type === 'buy_eval' ? 'Compra Evaluación' : 
+             transaction.type === 'activation_fee' ? 'Activación' : 
+             transaction.type === 'reset_account' ? 'Reset' : 
+             transaction.type === 'VPS' ? 'VPS' : 
+             transaction.type === 'payout' ? 'Pago' : transaction.type}
+          </p>
           <p className="text-sm text-gray-500">{formatDate(transaction.date)}</p>
         </div>
       </div>
@@ -45,10 +51,10 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
         <div className='text-right'>
           <span
             className={` block ${
-              transaction.type === 'initial' ? 'text-blue-500' : transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+              transaction.type === 'initial' ? 'text-blue-500' : transaction.type === 'payout' ? 'text-green-600' : 'text-red-600'
             }`}
             >
-            {transaction.type === 'initial' ? '' : transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount )}
+            {transaction.type === 'initial' ? '' : transaction.type === 'payout' ? '+' : '-'}{formatCurrency(transaction.amount )}
           </span>
           <p className="text-sm text-gray-500">Balance: <span className='text-gray-400'>{formatCurrency(transaction.balanceAfter)}</span></p>
         </div>

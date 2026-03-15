@@ -4,32 +4,24 @@ import { useFinance } from '../hooks/useFinance';
 import { format } from 'date-fns';
 
 const TransactionForm: React.FC = () => {
-  const { state, addTransaction } = useFinance();
-  const [type, setType] = useState<'' | 'initial' | 'income' | 'expense'>('');
+  const { addTransaction } = useFinance();
+  const [type, setType] = useState<'' | 'buy_eval' | 'activation_fee' | 'reset_account' | 'VPS' | 'payout'>('buy_eval');
   const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [formVisible, setFormVisible] = useState(false);
 
   const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
-    // const { state } = useFinance()
-    const lastTransaction = [...state.transactions].slice(-1)[0];
-    const lastBalance = lastTransaction ? lastTransaction.balanceAfter : state.initialCapital;
-    const balanceAfter = type === 'income' ? lastBalance + parseFloat(amount) : lastBalance - parseFloat(amount);
     const numAmount = parseFloat(amount);
-    if (numAmount > 0 && description.trim() && type !== '' && date) {
+    if (numAmount > 0 && type !== '' && date) {
       addTransaction({
         type,
         amount: numAmount,
-        description: description.trim(),
         date,
-        balanceAfter: balanceAfter,
       });
       
       // Reset form
       setAmount('');
-      setDescription('');
       setDate(format(new Date(), 'yyyy-MM-dd'));
     }
   };
@@ -46,13 +38,16 @@ const TransactionForm: React.FC = () => {
             <label className="block text-gray-600 text-sm font-medium mb-2">Tipo</label>
             <select
               value={type}
-              onChange={(e) => setType(e.target.value as '' | 'income' | 'expense')}
+              onChange={(e) => setType(e.target.value as 'buy_eval' | 'activation_fee' | 'reset_account' | 'VPS' | 'payout')}
               className={`w-full bg-gray-800 text-gray-200 p-1 rounded ${type === '' ? 'text-gray-600' : 'text-gray-200'}`}
               required
               >
               <option value="" className='text-gray-600' disabled>Tipo</option>
-              <option value="income" className='text-gray-200'>Ingreso</option>
-              <option value="expense" className='text-gray-200'>Gasto</option>
+              <option value="buy_eval" className='text-red-500'>Comprar Evaluación</option>
+              <option value="activation_fee" className='text-red-500'>Activación</option>
+              <option value="reset_account" className='text-red-500'>Reset</option>
+              <option value="VPS" className='text-red-500'>VPS</option>
+              <option value="payout" className='text-green-500'>Pago</option>
             </select>
           </div>
           <div className='flex-1'>
@@ -78,17 +73,6 @@ const TransactionForm: React.FC = () => {
               required
               />
           </div>
-        </div>
-        <div>
-          <label className="block text-gray-600 text-sm font-medium mb-2">Descripción</label>
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full bg-gray-800 text-gray-200 p-1 border-gray-900 rounded focus:outline-none focus:bg-gray-700 placeholder:text-gray-600 focus:placeholder:text-gray-500"
-            placeholder="Descripción de la transacción"
-            required
-          />
         </div>
         <button
           type="submit"

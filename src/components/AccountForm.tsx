@@ -4,25 +4,28 @@ import { useFinance } from '../hooks/useFinance';
 import { format } from 'date-fns';
 
 const AccountForm: React.FC = () => {
-  const { addAccount } = useFinance();
+  const { addMyAccount } = useFinance();
   const [accountId, setAccountId] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [ref, setRef] = useState('');
+  const [state, setState] = useState('active');
   const [formVisible, setFormVisible] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const numAccountId = parseInt(accountId);
-    if (numAccountId > 0 && ref.trim() && date) {
-      await addAccount({
+    if (numAccountId > 0 && ref.trim() && date && state) {
+      await addMyAccount({
         account_id: numAccountId,
         date,
         ref: ref.trim(),
+        state,
       });
 
       // Reset form
       setAccountId('');
       setRef('');
+      setState('active');
       setDate(format(new Date(), 'yyyy-MM-dd'));
     }
   };
@@ -67,6 +70,19 @@ const AccountForm: React.FC = () => {
             placeholder="Referencia de la cuenta"
             required
           />
+        </div>
+        <div>
+          <label className="block text-gray-600 text-sm font-medium mb-2">Estado</label>
+          <select
+            value={state}
+            onChange={(e) => setState(e.target.value)}
+            className="w-full bg-gray-800 text-gray-200 p-1 rounded focus:outline-none focus:bg-gray-700"
+            required
+          >
+            <option value="active">Activa</option>
+            <option value="closed">Cerrada</option>
+            <option value="pending">Pendiente</option>
+          </select>
         </div>
         <button
           type="submit"

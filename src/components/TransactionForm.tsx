@@ -89,7 +89,7 @@ const TransactionForm: React.FC<{ accountId?: string; onClose?: () => void }> = 
               onChange={(e) => setAmount(e.target.value)}
               className="w-full bg-gray-800 text-gray-200 p-1 border-gray-900 rounded focus:outline-none focus:bg-gray-700 placeholder:text-gray-600 focus:placeholder:text-gray-500"
               placeholder="0"
-              min="0.01"
+              min="0.00"
               step="0.01"
               required
               />

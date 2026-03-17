@@ -45,7 +45,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
             >
             {transaction.type === 'initial' ? '' : transaction.type === 'payout' ? '+' : '-'}{formatCurrency(transaction.amount )}
           </span>
-          <p className="text-sm text-gray-500">Balance: <span className='text-gray-400'>{formatCurrency(transaction.balanceAfter)}</span></p>
+          {/* <p className="text-sm text-gray-500">Balance: <span className='text-gray-400'>{formatCurrency(transaction.balanceAfter)}</span></p> */}
         </div>
         <button
           onClick={handleDelete}

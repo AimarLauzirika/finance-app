@@ -9,18 +9,33 @@ export interface Transaction {
   my_account_id?: string; // Optional foreign key to my_accounts.id
 }
 
-export interface Account {
+export interface Company {
+  id: number;
+  short_name: string;
+}
+
+export interface AccountTable {
+  id: number;
+  name: string;
+  company_id: number;
+}
+
+export interface MyAccount {
   id: string;
   account_id: number;
   date: string; // YYYY-MM-DD
   ref: string;
+  state: string;
+  eval_pass: boolean;
 }
 
 export interface FinanceState {
   initialCapital: number;
   initialCapitalDate: string; // YYYY-MM-DD
   transactions: Transaction[];
-  accounts: Account[];
+  myAccounts: MyAccount[];
+  accounts: AccountTable[];
+  companies: Company[];
 }
 
 export type FinanceAction =
@@ -34,7 +49,7 @@ export type FinanceContextValue = {
   addTransaction: (transaction: Omit<Transaction, 'id' | 'balanceAfter'>) => Promise<Transaction | undefined>;
   deleteTransaction: (id: string) => Promise<void>;
   setInitialCapital: (capital: number, date: string) => Promise<void>;
-  addAccount: (account: Omit<Account, 'id'>) => Promise<void>;
+  addMyAccount: (account: Omit<MyAccount, 'id'>) => Promise<void>;
   balance: number;
   profit: number;
   transactionFormVisible: boolean;

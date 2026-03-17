@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
-import { Plus, Eye } from 'lucide-react';
+import { Plus, Eye, Award } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import TransactionForm from './TransactionForm';
 import AccountTransactionsModal from './AccountTransactionsModal';
 import { format } from 'date-fns';
+import type { MyAccount } from '../types';
+import { formatCurrency } from '../utils/formatters';
 
 interface AccountItemProps {
-  account: {
-    id: string;
-    account_id: number;
-    date: string;
-    ref: string;
-  };
+  account: MyAccount;
 }
 
 const AccountItem: React.FC<AccountItemProps> = ({ account }) => {
@@ -19,32 +16,54 @@ const AccountItem: React.FC<AccountItemProps> = ({ account }) => {
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
+  // Find account details
+  const accountDetails = state.accounts.find(a => a.id === account.account_id);
+  const company = accountDetails ? state.companies.find(c => c.id === accountDetails.company_id) : null;
+
   // Check if account has buy_account transaction
   const hasBuyTransaction = state.transactions.some(t => t.type === 'buy_account' && t.my_account_id === account.id);
+
+  // Calculate results (total payouts and total incomes)
+  const totalPayouts = state.transactions
+    .filter(t => t.type === 'payout' && t.my_account_id === account.id)
+    .reduce((sum, t) => sum + t.amount, 0);
+  const totalExpenses = state.transactions
+    .filter(t => (t.type === 'buy_account' || t.type === 'activation_fee' || t.type === 'reset_account') && t.my_account_id === account.id)
+    .reduce((sum, t) => sum + t.amount, 0);
+  const accountResults = totalPayouts - totalExpenses
+
+  const accountName = company && accountDetails ? `${company.short_name} - ${accountDetails.name}` : `Cuenta ID: ${account.account_id}`;
 
   return (
     <div className="bg-gray-800 p-4 rounded-lg">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-gray-200 font-medium">Cuenta ID: {account.account_id}</p>
+          <p className="text-gray-200 font-medium">{accountName}</p>
           <p className="text-gray-500 text-sm">{format(new Date(account.date), 'dd/MM/yyyy')}</p>
           <p className="text-gray-400 text-sm">Ref: {account.ref}</p>
+          <p className="text-gray-400 text-sm">Estado: {account.state}</p>
           {!hasBuyTransaction && (
             <p className="text-red-500 text-sm">⚠️ Sin transacción de compra</p>
           )}
         </div>
+        <div className='text-center'>
+          {account.eval_pass ? <div className='flex text-amber-400 justify-center'><p className=''> Eval Pass</p><Award className='h-5 w-5' /></div> : ''}
+          <p className="text-gray-400 text-sm">Pagos: {formatCurrency(totalPayouts)}</p>
+          {/* <p className='text-gray-400'>Resultado:</p> */}
+          <p className={`text-xl font-bold text-gray-300 ${accountResults > 0 ? 'text-green-600' : 'text-red-700'}`}>{formatCurrency(accountResults)}</p>
+        </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowTransactionForm(!showTransactionForm)}
-            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 flex items-center gap-1"
-          >
-            <Plus className="h-4 w-4" /> Transacción
+            className="bg-amber-700 text-white px-3 py-1 rounded hover:bg-amber-600 flex items-center gap-1"
+            >
+            <Plus className="h-4 w-4" /> T
           </button>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 flex items-center gap-1"
+            className="bg-sky-900 text-white px-3 py-1 rounded hover:bg-sky-700 flex items-center gap-1"
           >
-            <Eye className="h-4 w-4" /> Ver Transacciones
+            <Eye className="h-4 w-4" /> T
           </button>
         </div>
       </div>

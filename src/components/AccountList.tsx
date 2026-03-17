@@ -1,23 +1,111 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import AccountItem from './AccountItem';
 
 const AccountList: React.FC = () => {
   const { state } = useFinance();
   const [listVisible, setListVisible] = useState(true);
+  const [filtersVisible, setFiltersVisible] = useState(false);
+  const [companyFilter, setCompanyFilter] = useState('');
+  const [stateFilter, setStateFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const filteredAccounts = state.myAccounts.filter(account => {
+    const accountDetails = state.accounts.find(a => a.id === account.account_id);
+    const company = accountDetails ? state.companies.find(c => c.id === accountDetails.company_id) : null;
+
+    const matchesCompany = !companyFilter || (company && company.short_name.toLowerCase().includes(companyFilter.toLowerCase()));
+    const matchesState = !stateFilter || account.state.toLowerCase().includes(stateFilter.toLowerCase());
+    const matchesStartDate = !startDate || new Date(account.date) >= new Date(startDate);
+    const matchesEndDate = !endDate || new Date(account.date) <= new Date(endDate);
+
+    return matchesCompany && matchesState && matchesStartDate && matchesEndDate;
+  });
+
+  const uniqueCompanies = Array.from(new Set(
+    state.myAccounts
+      .map(account => {
+        const accountDetails = state.accounts.find(a => a.id === account.account_id);
+        const company = accountDetails ? state.companies.find(c => c.id === accountDetails.company_id) : null;
+        return company?.short_name;
+      })
+      .filter(Boolean)
+  ));
+
+  const uniqueStates = Array.from(new Set(state.myAccounts.map(account => account.state)));
 
   return (
-    <div className="bg-gray-900 p-6 rounded-lg shadow-md mb-6 max-w-xl mx-auto">
-      <h2 className="text-2xl text-gray-400 font-semibold hover:cursor-pointer hover:text-blue-500 hover:opacity-75 select-none flex items-center justify-between" onClick={() => setListVisible(!listVisible)}>
-        Mis Cuentas {listVisible ? <ChevronUp className="h-6 w-6" /> : <ChevronDown className="h-6 w-6" />}
+    <div className="bg-gray-900 p-6 rounded-lg shadow-md mb-6 max-w-4xl mx-auto">
+      <h2 className="text-2xl text-gray-400 font-semibold flex items-center justify-between"
+      //  onClick={() => setListVisible(!listVisible)}
+       >
+        Mis Cuentas 
+        {/* {listVisible ? <ChevronUp className="h-6 w-6" /> : <ChevronDown className="h-6 w-6" />} */}
+        <button
+          onClick={() => setFiltersVisible(!filtersVisible)}
+          className="ml-4 text-lg font-normal bg-blue-800 hover:bg-blue-700 text-gray-300 px-3 py-1 rounded flex items-center gap-1"
+        >
+          <Filter className="h-4 w-4" /> Filtros
+        </button>
       </h2>
+      {filtersVisible && (
+        <div className="mt-4 bg-gray-800 p-4 rounded">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-gray-300 text-sm mb-1">Compañía</label>
+              <select
+                value={companyFilter}
+                onChange={(e) => setCompanyFilter(e.target.value)}
+                className="w-full bg-gray-700 text-white px-3 py-2 rounded"
+              >
+                <option value="">Todas</option>
+                {uniqueCompanies.map(company => (
+                  <option key={company} value={company}>{company}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-gray-300 text-sm mb-1">Estado</label>
+              <select
+                value={stateFilter}
+                onChange={(e) => setStateFilter(e.target.value)}
+                className="w-full bg-gray-700 text-white px-3 py-2 rounded"
+              >
+                <option value="">Todos</option>
+                {uniqueStates.map(state => (
+                  <option key={state} value={state}>{state}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-gray-300 text-sm mb-1">Fecha Desde</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full bg-gray-700 text-white px-3 py-2 rounded"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-300 text-sm mb-1">Fecha Hasta</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full bg-gray-700 text-white px-3 py-2 rounded"
+              />
+            </div>
+          </div>
+        </div>
+      )}
       {listVisible && (
         <div className="mt-6 space-y-4">
-          {state.accounts.length === 0 ? (
-            <p className="text-gray-500">No hay cuentas agregadas.</p>
+          {filteredAccounts.length === 0 ? (
+            <p className="text-gray-500">No hay cuentas que coincidan con los filtros.</p>
           ) : (
-            state.accounts.map(account => (
+            filteredAccounts.map(account => (
               <AccountItem key={account.id} account={account} />
             ))
           )}

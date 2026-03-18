@@ -7,6 +7,7 @@ import AccountForm from './components/AccountForm';
 import AccountList from './components/AccountList';
 import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
+import { ScrollArea } from './components/ScrollArea';
 import Login from './components/Login';
 import { Sidebar } from './components/Sidebar';
 
@@ -55,17 +56,29 @@ function App() {
         return <BalanceDisplay />;
       case 'accounts':
         return (
-          <>
-            <AccountForm />
-            <AccountList />
-          </>
+          <div className="flex flex-col lg:flex-row gap-4 h-full">
+            <div className="lg:w-1/3">
+              <AccountForm />
+            </div>
+            <div className="lg:flex-1 h-full">
+              <ScrollArea className="h-full">
+                <AccountList />
+              </ScrollArea>
+            </div>
+          </div>
         );
       case 'transactions':
         return (
-          <>
-            <TransactionForm />
-            <TransactionList />
-          </>
+          <div className="flex flex-col lg:flex-row gap-4 h-full">
+            <div className="lg:w-1/3">
+              <TransactionForm />
+            </div>
+            <div className="lg:flex-1 h-full">
+              <ScrollArea className="h-full">
+                <TransactionList />
+              </ScrollArea>
+            </div>
+          </div>
         );
       default:
         return <BalanceDisplay />;
@@ -80,9 +93,9 @@ function App() {
           onViewChange={setCurrentView}
           onLogout={handleLogout}
         />
-        <div className="flex-1 py-8">
-          <div className="container mx-auto px-4">
-            <main className="max-w-4xl mx-auto">
+        <div className="flex-1 flex flex-col py-8">
+          <div className="container mx-auto px-4 flex-1 flex flex-col">
+            <main className="flex-1">
               {renderMainContent()}
             </main>
           </div>

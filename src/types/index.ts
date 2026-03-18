@@ -5,7 +5,6 @@ export interface Transaction {
   type: TransactionType;
   amount: number;
   date: string; // YYYY-MM-DD
-  balanceAfter: number; // Se calcula al agregar la transacción
   my_account_id?: string; // Optional foreign key to my_accounts.id
 }
 
@@ -26,7 +25,7 @@ export interface MyAccount {
   date: string; // YYYY-MM-DD
   ref: string;
   state: string;
-  eval_pass: boolean;
+  eval_pass?: boolean;
 }
 
 export interface FinanceState {
@@ -40,16 +39,15 @@ export interface FinanceState {
 
 export type FinanceAction =
   | { type: 'SET_INITIAL_CAPITAL'; payload: number }
-  | { type: 'SET_BALANCE_AFTER'; payload: number }
   | { type: 'ADD_TRANSACTION'; payload: Omit<Transaction, 'id'> }
   | { type: 'DELETE_TRANSACTION'; payload: string };
 
 export type FinanceContextValue = {
   state: FinanceState;
-  addTransaction: (transaction: Omit<Transaction, 'id' | 'balanceAfter'>) => Promise<Transaction | undefined>;
+  addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<Transaction | undefined>;
   deleteTransaction: (id: string) => Promise<void>;
   setInitialCapital: (capital: number, date: string) => Promise<void>;
-  addMyAccount: (account: Omit<MyAccount, 'id'>) => Promise<void>;
+  addMyAccount: (account: Omit<MyAccount, 'id'> & { cost?: number }) => Promise<void>;
   balance: number;
   profit: number;
   transactionFormVisible: boolean;

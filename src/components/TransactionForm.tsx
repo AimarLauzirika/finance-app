@@ -1,116 +1,157 @@
 import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import { format } from 'date-fns';
 import { TRANSACTION_TYPES } from '../constants/transactionTypes';
 import type { TransactionType } from '../constants/transactionTypes';
 
+type TransactionRow = {
+  id: string;
+  type: TransactionType;
+  amount: string;
+  date: string;
+};
+
 const TransactionForm: React.FC<{ accountId?: string; onClose?: () => void }> = ({ accountId, onClose }) => {
   const { addTransaction } = useFinance();
-  const [type, setType] = useState<TransactionType>('buy_account');
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [formVisible, setFormVisible] = useState(false);
+  const [rows, setRows] = useState<TransactionRow[]>([
+    { id: crypto.randomUUID(), type: 'buy_account', amount: '', date: format(new Date(), 'yyyy-MM-dd') },
+  ]);
 
-  const handleSubmit = async (e: React.SubmitEvent) => {
+  const handleRowChange = (id: string, field: keyof Omit<TransactionRow, 'id'>, value: string) => {
+    setRows(current => current.map(row => (row.id === id ? { ...row, [field]: value } : row)));
+  };
+
+  const addRow = () => {
+    setRows(current => [
+      ...current,
+      { id: crypto.randomUUID(), type: 'buy_account', amount: '', date: format(new Date(), 'yyyy-MM-dd') },
+    ]);
+  };
+
+  const removeRow = (id: string) => {
+    setRows(current => current.filter(row => row.id !== id));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const numAmount = parseFloat(amount);
-    if (numAmount > 0 && date) {
-      await addTransaction({
-        type,
-        amount: numAmount,
-        date,
-        my_account_id: accountId,
-      });
-      
-      // Reset form
-      setAmount('');
-      setDate(format(new Date(), 'yyyy-MM-dd'));
-      onClose?.();
+
+    const entries = rows
+      .map(row => ({
+        type: row.type,
+        amount: parseFloat(row.amount),
+        date: row.date,
+      }))
+      .filter(row => row.amount > 0 && row.date);
+
+    if (entries.length === 0) {
+      return;
     }
+
+    await Promise.all(
+      entries.map(entry =>
+        addTransaction({
+          ...entry,
+          my_account_id: accountId,
+        }),
+      ),
+    );
+
+    // Reset form
+    setRows([{ id: crypto.randomUUID(), type: 'buy_account', amount: '', date: format(new Date(), 'yyyy-MM-dd') }]);
+    onClose?.();
   };
 
 
   return (
     <div className="bg-gray-900 p-6 rounded-lg shadow-md mb-6 max-w-xl mx-auto">
-      {accountId && (
-        <h2 className="block text-md text-gray-400 font-semibold hover:cursor-pointer hover:text-blue-500 hover:opacity-75 select-none" onClick={() => setFormVisible(!formVisible)}>
-        Agregar Transacción {<Plus className="inline font-bold h-5 w-5 stroke-[3]" />}
-      </h2>
-      )}
-      {!accountId && (
-        <h2 className="text-xl text-gray-400 font-semibold hover:cursor-pointer hover:text-blue-500 hover:opacity-75 select-none" onClick={() => setFormVisible(!formVisible)}>
-        Agregar Transacción {<Plus className="inline font-bold h-5 w-5 stroke-[3]" />}
-      </h2>
-      )}
-      <form onSubmit={handleSubmit} className={`space-y-6 ${formVisible ? 'block' : 'hidden'} mt-6`}>
-        <div className='flex gap-4'>
-          <div>
-            <label className="block text-gray-600 text-sm font-medium mb-2">Tipo</label>
-            <select
-              // value={type}
-              defaultValue={''}
-              onChange={(e) => {
-                setType(e.target.value as TransactionType);
-                e.target.className = `w-full bg-gray-800 p-1 rounded ${e.target.value === 'buy_account' || e.target.value === 'activation_fee' || e.target.value === 'reset_account' || e.target.value === 'VPS' ? 'text-red-500' : e.target.value === 'payout' ? 'text-green-500' : 'text-gray-500'}`;
-              }}
-              className={`w-full bg-gray-800 text-gray-500 p-1 rounded`}
-              required
-              >
-                <option disabled value="">Elige un tipo</option>
-              {!accountId && Object.entries(TRANSACTION_TYPES).filter(([key]) => key === 'VPS' || key === 'dividends' || key === 'income_tax').map(([key, label]) => (
-                <option key={key} value={key} className='text-gray-300'>
-                  {label}
-                </option>
-              ))}
-              {accountId && Object.entries(TRANSACTION_TYPES).filter(([key]) => key === 'payout' || key === 'buy_account' || key === 'reset_account' || key === 'activation_fee').map(([key, label]) => (
-                <option key={key} value={key} className={key === 'payout' ? 'text-green-500' : 'text-red-500'}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-          {accountId && (
-            <div className='hidden'>
-              <label className="block text-gray-600 text-sm font-medium mb-2">Cuenta Asociada</label>
-              <input
-                type="text"
-                value={`Cuenta ${accountId}`}
-                readOnly
-                className="w-full bg-gray-700 text-gray-400 p-1 rounded"
-              />
+      <h2 className="text-xl text-gray-400 font-semibold">Agregar Transacciones</h2>
+      <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+        {rows.map((row, index) => (
+          <div key={row.id} className="bg-gray-800 p-4 rounded">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-gray-300">Transacción {index + 1}</p>
+              {rows.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeRow(row.id)}
+                  className="text-red-400 hover:text-red-600"
+                  title="Eliminar fila"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
-          )}
-          <div className='flex-1'>
-            <label className="block text-gray-600 text-sm font-medium mb-2">Cantidad (USD)</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-gray-800 text-gray-200 p-1 border-gray-900 rounded focus:outline-none focus:bg-gray-700 placeholder:text-gray-600 focus:placeholder:text-gray-500"
-              placeholder="0"
-              min="0.00"
-              step="0.01"
-              required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-gray-600 text-sm font-medium mb-2">Tipo</label>
+                <select
+                  value={row.type}
+                  onChange={e => handleRowChange(row.id, 'type', e.target.value)}
+                  className="w-full bg-gray-700 text-white px-3 py-2 rounded"
+                  required
+                >
+                  <option value="">Elige un tipo</option>
+                  {!accountId &&
+                    Object.entries(TRANSACTION_TYPES)
+                      .filter(([key]) => key === 'VPS' || key === 'dividends' || key === 'income_tax')
+                      .map(([key, label]) => (
+                        <option key={key} value={key}>
+                          {label}
+                        </option>
+                      ))}
+                  {accountId &&
+                    Object.entries(TRANSACTION_TYPES)
+                      .filter(([key]) => key === 'payout' || key === 'buy_account' || key === 'reset_account' || key === 'activation_fee')
+                      .map(([key, label]) => (
+                        <option key={key} value={key}>
+                          {label}
+                        </option>
+                      ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-600 text-sm font-medium mb-2">Cantidad (USD)</label>
+                <input
+                  type="number"
+                  value={row.amount}
+                  onChange={e => handleRowChange(row.id, 'amount', e.target.value)}
+                  className="w-full bg-gray-700 text-white px-3 py-2 rounded"
+                  placeholder="0"
+                  min="0.00"
+                  step="0.01"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-gray-600 text-sm font-medium mb-2">Fecha</label>
+                <input
+                  type="date"
+                  value={row.date}
+                  onChange={e => handleRowChange(row.id, 'date', e.target.value)}
+                  className="w-full bg-gray-700 text-white px-3 py-2 rounded"
+                  required
+                />
+              </div>
+            </div>
           </div>
-          <div className='flex-1'>
-            <label className="block text-gray-600 text-sm font-medium mb-2">Fecha</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-gray-800 text-gray-200 p-1 rounded focus:outline-none focus:bg-gray-700"
-              required
-              />
-          </div>
+        ))}
+
+        <div className="flex items-center justify-between gap-4">
+          <button
+            type="button"
+            onClick={addRow}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" /> Otra transacción
+          </button>
+          <button
+            type="submit"
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
+            Agregar todas
+          </button>
         </div>
-        <button
-          type="submit"
-          className="w-full bg-blue-800 px-4 py-2 bg-blue-500 text-blue-100 rounded hover:bg-blue-600 "
-        >
-          Agregar Transacción
-        </button>
       </form>
     </div>
   );

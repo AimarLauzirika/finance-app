@@ -2,17 +2,13 @@ import React from 'react';
 import { ChartSpline } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useFinance } from '../hooks/useFinance';
+import { computeRunningBalance } from '../utils/balance';
 
 const BalanceChart: React.FC = () => {
   const { state } = useFinance();
 
-  // Calculate balance evolution data
-  const balanceData = state.transactions
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .map(transaction => ({
-      date: transaction.date,
-      balance: transaction.balanceAfter,
-    }));
+  // Calculate balance evolution data on demand (no stored `balanceAfter`)
+  const balanceData = computeRunningBalance(state.transactions);
 
   return (
     <div className="w-full h-64 bg-transparent p-4 rounded-lg">

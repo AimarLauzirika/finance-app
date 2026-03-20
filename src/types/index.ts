@@ -63,6 +63,7 @@ export type FinanceContextValue = {
   updateTransaction: (id: string, updates: Partial<Omit<Transaction, 'id'>>) => Promise<void>;
   addActiveAccount: (account: ActiveAccount) => Promise<void>;
   updateActiveAccount: (ref: string, updates: Partial<Omit<ActiveAccount, 'ref'>>) => Promise<void>;
+  closeAccount: (ref: string) => Promise<void>;
   balance: number;
   profit: number;
   transactionFormVisible: boolean;

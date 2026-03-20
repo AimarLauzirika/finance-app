@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pencil, PlusCircle, Save, X } from 'lucide-react';
+import { Pencil, PlusCircle, Save, X, Trash2 } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import type { ActiveAccount } from '../types';
 import { formatCurrency } from '../utils/formatters';
@@ -9,6 +9,7 @@ const ActiveAccounts: React.FC = () => {
     state,
     addActiveAccount,
     updateActiveAccount,
+    closeAccount,
   } = useFinance();
 
   const activeMyAccounts = useMemo(() => state.myAccounts.filter(a => a.state === 'active'), [state.myAccounts]);
@@ -24,7 +25,14 @@ const ActiveAccounts: React.FC = () => {
   const companiesById = useMemo(() => {
     const map: Record<number, string> = {};
     state.companies.forEach((c) => {
-      // map[c.id] = c.short_name;
+      map[c.id] = c.short_name;
+    });
+    return map;
+  }, [state.companies]);
+
+  const companiesByIdLong = useMemo(() => {
+    const map: Record<number, string> = {};
+    state.companies.forEach((c) => {
       map[c.id] = c.long_name;
     });
     return map;
@@ -83,7 +91,8 @@ const ActiveAccounts: React.FC = () => {
           const activeAccount = activeAccountMap[myAccount.ref];
           const account = state.accounts.find(a => a.id === myAccount.account_id);
           const accountName = account?.name ?? 'Unknown account';
-          const companyName = account ? companiesById[account.company_id] ?? 'Unknown' : 'Unknown';
+          const companyShortName = account ? companiesById[account.company_id] ?? 'Unknown' : 'Unknown';
+          const companyName = account ? companiesByIdLong[account.company_id] ?? 'Unknown' : 'Unknown';
 
           const progress = activeAccount?.target_account
             ? (activeAccount.balance - activeAccount.current_mdd) / (activeAccount.target_account - activeAccount.current_mdd)
@@ -92,20 +101,45 @@ const ActiveAccounts: React.FC = () => {
           return (
             <div key={myAccount.id} className="bg-gray-900 p-6 rounded-lg shadow-md">
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-200">{accountName}</h3>
-                  <p className="text-sm text-gray-500">{companyName}</p>
-                  <p className="text-sm text-gray-500">{myAccount.ref}</p>
+                <div className="flex items-start gap-3">
+                  {account && account.company_id && (
+                    <img
+                      src={`/logos/${companyShortName}.png`}
+                      alt={companyName}
+                      className="w-8 h-8 flex-shrink-0 mt-1"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-200">{accountName}</h3>
+                    <p className="text-sm text-gray-500">{companyName}</p>
+                    <p className="text-sm text-gray-500">{myAccount.ref}</p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {activeAccount ? (
-                    <button
-                      onClick={() => (editingRef === myAccount.ref ? cancelEditing() : startEditing(myAccount.ref))}
-                      className="inline-flex items-center gap-2 rounded bg-blue-600 px-3 py-1 text-sm font-medium hover:bg-blue-500"
-                    >
-                      <Pencil size={16} />
-                      <span>{editingRef === myAccount.ref ? 'Cancel' : 'Edit'}</span>
-                    </button>
+                    <>
+                      <button
+                        onClick={() => (editingRef === myAccount.ref ? cancelEditing() : startEditing(myAccount.ref))}
+                        className="inline-flex items-center gap-2 rounded bg-blue-600 px-3 py-1 text-sm font-medium hover:bg-blue-500"
+                      >
+                        <Pencil size={16} />
+                        <span>{editingRef === myAccount.ref ? 'Cancel' : 'Edit'}</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to close this account? This action cannot be undone.')) {
+                            closeAccount(myAccount.ref);
+                          }
+                        }}
+                        className="inline-flex items-center gap-2 rounded bg-red-600 px-3 py-1 text-sm font-medium hover:bg-red-500"
+                      >
+                        <Trash2 size={16} />
+                        <span>Close</span>
+                      </button>
+                    </>
                   ) : (
                     <button
                       onClick={() => createActiveRecord(myAccount.ref)}

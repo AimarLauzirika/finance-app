@@ -327,6 +327,41 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     }));
   };
 
+  const closeAccount = async (ref: string) => {
+    try {
+      // Update my_accounts state to 'closed'
+      const { error: updateError } = await supabase
+        .from('my_accounts')
+        .update({ state: 'closed' })
+        .eq('ref', ref);
+
+      if (updateError) {
+        console.error('Error closing account:', updateError);
+        return;
+      }
+
+      // Delete from my_active_accounts
+      const { error: deleteError } = await supabase
+        .from('my_active_accounts')
+        .delete()
+        .eq('ref', ref);
+
+      if (deleteError) {
+        console.error('Error deleting active account:', deleteError);
+        return;
+      }
+
+      // Update local state
+      setState(prev => ({
+        ...prev,
+        myAccounts: prev.myAccounts.map(a => a.ref === ref ? { ...a, state: 'closed' } : a),
+        activeAccounts: prev.activeAccounts.filter(a => a.ref !== ref),
+      }));
+    } catch (error) {
+      console.error('Error in closeAccount:', error);
+    }
+  };
+
   // Calculate balance and profit
   const totalIncome = state.transactions
     .filter(t => t.type === 'payout')
@@ -348,6 +383,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       updateTransaction,
       addActiveAccount,
       updateActiveAccount,
+      closeAccount,
       balance,
       profit,
       transactionFormVisible: false,

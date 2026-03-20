@@ -104,9 +104,9 @@ const ActiveAccounts: React.FC = () => {
                 <div className="flex items-start gap-3">
                   {account && account.company_id && (
                     <img
-                      src={`/logos/${companyShortName}.png`}
+                      src={`/src/assets/logos/${companyShortName}.png`}
                       alt={companyName}
-                      className="w-8 h-8 flex-shrink-0 mt-1"
+                      className="w-16 h-full flex-shrink-0 my-auto"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
                       }}

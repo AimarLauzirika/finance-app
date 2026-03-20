@@ -60,7 +60,8 @@ function App() {
             <div className="lg:w-1/3">
               <AccountForm />
             </div>
-            <div className="lg:flex-1 h-full">
+            {/* <div className="lg:flex-1 max-h-screen"> */}
+            <div className="lg:flex-1">
               <AccountList />
             </div>
           </div>

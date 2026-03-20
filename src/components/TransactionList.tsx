@@ -24,7 +24,7 @@ const TransactionList: React.FC = () => {
   const uniqueTypes = Array.from(new Set(state.transactions.map(t => t.type)));
 
   return (
-    <div className="bg-gray-900 p-6 rounded-lg shadow-md max-w-4xl mx-auto h-full flex flex-col">
+    <div className="bg-gray-900 p-6 rounded-lg shadow-md max-w-4xl mx-auto h-[calc(100vh-65px)] flex flex-col">
       <h2 className="text-gray-400 text-2xl font-semibold flex-shrink-0">Transacciones</h2>
       <div className="mt-4 bg-gray-800 p-4 rounded flex-shrink-0">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

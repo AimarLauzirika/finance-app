@@ -34,7 +34,7 @@ const AccountList: React.FC = () => {
   const uniqueStates = Array.from(new Set(state.myAccounts.map(account => account.state)));
 
   return (
-    <div className="bg-gray-900 p-6 rounded-lg shadow-md max-w-4xl mx-auto h-full flex flex-col">
+    <div className="bg-gray-900 p-6 rounded-lg shadow-md max-w-4xl mx-auto h-[calc(100vh-65px)] flex flex-col">
       <h2 className="text-2xl text-gray-400 font-semibold flex-shrink-0">Mis Cuentas</h2>
       <div className="mt-4 bg-gray-800 p-4 rounded flex-shrink-0">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

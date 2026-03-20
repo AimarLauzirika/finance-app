@@ -84,7 +84,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex justify-center flex-1">
         {!isEditing && (
           <div className={`text-sm font-medium ${
             transaction.type === 'initial' ? 'text-blue-500' : transaction.type === 'payout' ? 'text-green-600' : 'text-red-600'
@@ -92,6 +92,8 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
             {transaction.type === 'initial' ? '' : transaction.type === 'payout' ? '+' : '-'}${transaction.amount.toFixed(2)}
           </div>
         )}
+      </div>
+      <div className="flex  justify-end gap-2 flex-1">
         {isEditing ? (
           <>
             <button

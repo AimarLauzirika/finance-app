@@ -8,14 +8,14 @@ const AccountForm: React.FC = () => {
   const [accountId, setAccountId] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [ref, setRef] = useState('');
-  const [state, setState] = useState('active');
+  const [state, setState] = useState<'active' | 'closed' | 'pending'>('active');
   const [cost, setCost] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const numAccountId = parseInt(accountId);
     const numCost = parseFloat(cost);
-    if (numAccountId > 0 && ref.trim() && date && state && numCost > 0) {
+    if (numAccountId > 0 && ref.trim() && date && state && numCost >= 0) {
       await addMyAccount({
         account_id: numAccountId,
         date,
@@ -80,22 +80,21 @@ const AccountForm: React.FC = () => {
             onChange={(e) => setCost(e.target.value)}
             className="w-full bg-gray-800 text-gray-200 p-1 border-gray-900 rounded focus:outline-none focus:bg-gray-700 placeholder:text-gray-600 focus:placeholder:text-gray-500"
             placeholder="0.00"
-            min="0.00"
+            min="0"
             step="0.01"
-            required
           />
         </div>
         <div>
           <label className="block text-gray-600 text-sm font-medium mb-2">Estado</label>
           <select
             value={state}
-            onChange={(e) => setState(e.target.value)}
+            onChange={(e) => setState(e.target.value as 'active' | 'closed' | 'pending')}
             className="w-full bg-gray-800 text-gray-200 p-1 rounded focus:outline-none focus:bg-gray-700"
             required
           >
             <option value="active">Activa</option>
-            <option value="inactive">Inactiva</option>
-            <option value="sold">Vendida</option>
+            <option value="closed">Cerrada</option>
+            <option value="pending">Pendiente</option>
           </select>
         </div>
         <button

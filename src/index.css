@@ -25,6 +25,26 @@ a {
 
 /* Custom styles */
 
+@layer utilities {
+  .scrollbar-custom {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.6) rgba(255, 255, 255, 0.08);
+  }
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 10px;
+  }
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.6);
+    border-radius: 9999px;
+  }
+  .scrollbar-custom:hover::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.8);
+  }
+}
+
 input[type="number"] {
   -moz-appearance: textfield;
 }

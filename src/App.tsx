@@ -7,14 +7,14 @@ import AccountForm from './components/AccountForm';
 import AccountList from './components/AccountList';
 import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
-import { ScrollArea } from './components/ScrollArea';
+import ActiveAccounts from './components/ActiveAccounts';
 import Login from './components/Login';
 import { Sidebar } from './components/Sidebar';
 
 function App() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState<'balance' | 'accounts' | 'transactions'>('balance');
+  const [currentView, setCurrentView] = useState<'balance' | 'accounts' | 'transactions' | 'active'>('balance');
 
   useEffect(() => {
     // Check initial session
@@ -61,25 +61,23 @@ function App() {
               <AccountForm />
             </div>
             <div className="lg:flex-1 h-full">
-              <ScrollArea className="h-full">
-                <AccountList />
-              </ScrollArea>
+              <AccountList />
             </div>
           </div>
         );
       case 'transactions':
         return (
           <div className="flex flex-col lg:flex-row gap-4 h-full">
-            <div className="lg:w-1/3">
+            <div className="lg:w-1/2">
               <TransactionForm />
             </div>
             <div className="lg:flex-1 h-full">
-              <ScrollArea className="h-full">
-                <TransactionList />
-              </ScrollArea>
+              <TransactionList />
             </div>
           </div>
         );
+      case 'active':
+        return <ActiveAccounts />;
       default:
         return <BalanceDisplay />;
     }

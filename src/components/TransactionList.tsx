@@ -24,9 +24,9 @@ const TransactionList: React.FC = () => {
   const uniqueTypes = Array.from(new Set(state.transactions.map(t => t.type)));
 
   return (
-    <div className="bg-gray-900 p-6 rounded-lg shadow-md max-w-4xl mx-auto">
-      <h2 className="text-gray-400 text-2xl font-semibold">Transacciones</h2>
-      <div className="mt-4 bg-gray-800 p-4 rounded">
+    <div className="bg-gray-900 p-6 rounded-lg shadow-md max-w-4xl mx-auto h-full flex flex-col">
+      <h2 className="text-gray-400 text-2xl font-semibold flex-shrink-0">Transacciones</h2>
+      <div className="mt-4 bg-gray-800 p-4 rounded flex-shrink-0">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-gray-300 text-sm mb-1">Tipo</label>
@@ -61,15 +61,17 @@ const TransactionList: React.FC = () => {
           </div>
         </div>
       </div>
-      {filteredTransactions.length === 0 ? (
-        <p className="text-gray-500">No hay transacciones que coincidan con los filtros.</p>
-      ) : (
-        <div className="space-y-2 mt-4">
-          {filteredTransactions.map((transaction) => (
-            <TransactionItem key={transaction.id} transaction={transaction} />
-          ))}
-        </div>
-      )}
+      <div className="mt-4 flex-1 overflow-auto scrollbar-custom">
+        {filteredTransactions.length === 0 ? (
+          <p className="text-gray-500">No hay transacciones que coincidan con los filtros.</p>
+        ) : (
+          <div className="space-y-2">
+            {filteredTransactions.map((transaction) => (
+              <TransactionItem key={transaction.id} transaction={transaction} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

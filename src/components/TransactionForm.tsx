@@ -64,11 +64,11 @@ const TransactionForm: React.FC<{ accountId?: string; onClose?: () => void }> = 
 
 
   return (
-    <div className="bg-gray-900 p-6 rounded-lg shadow-md mb-6 max-w-xl mx-auto">
+    <div className="bg-gray-900 p-6 rounded-lg shadow-md mb-6 max-w-xl mx-auto min-w-[480px]">
       <h2 className="text-xl text-gray-400 font-semibold">Agregar Transacciones</h2>
       <form onSubmit={handleSubmit} className="space-y-6 mt-6">
         {rows.map((row, index) => (
-          <div key={row.id} className="bg-gray-800 p-4 rounded">
+          <div key={row.id} className="border-b pb-4 border-gray-700">
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm text-gray-300">Transacción {index + 1}</p>
               {rows.length > 1 && (
@@ -138,13 +138,12 @@ const TransactionForm: React.FC<{ accountId?: string; onClose?: () => void }> = 
         ))}
 
         <div className="flex items-center justify-between gap-4">
-          <button
-            type="button"
+          <p
             onClick={addRow}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
+            className="text-gray-400 px-4 py-2 hover:text-blue-600 hover:cursor-pointer select-none flex items-center gap-2"
           >
             <Plus className="h-4 w-4" /> Otra transacción
-          </button>
+          </p>
           <button
             type="submit"
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"

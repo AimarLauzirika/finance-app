@@ -1,9 +1,9 @@
 import React from 'react';
-import { Home, CreditCard, Receipt, LogOut } from 'lucide-react';
+import { Home, CreditCard, Receipt, Activity, LogOut } from 'lucide-react';
 
 interface SidebarProps {
-  currentView: 'balance' | 'accounts' | 'transactions';
-  onViewChange: (view: 'balance' | 'accounts' | 'transactions') => void;
+  currentView: 'balance' | 'accounts' | 'transactions' | 'active';
+  onViewChange: (view: 'balance' | 'accounts' | 'transactions' | 'active') => void;
   onLogout: () => void;
 }
 
@@ -46,6 +46,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, onL
             >
               <Receipt size={20} />
               <span>Transactions</span>
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={() => onViewChange('active')}
+              className={`w-full text-left px-4 py-2 rounded flex items-center space-x-2 ${
+                currentView === 'active' ? 'bg-blue-600' : 'hover:bg-gray-700'
+              }`}
+            >
+              <Activity size={20} />
+              <span>Active Accounts</span>
             </button>
           </li>
         </ul>

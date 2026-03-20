@@ -34,9 +34,9 @@ const AccountList: React.FC = () => {
   const uniqueStates = Array.from(new Set(state.myAccounts.map(account => account.state)));
 
   return (
-    <div className="bg-gray-900 p-6 rounded-lg shadow-md mb-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl text-gray-400 font-semibold">Mis Cuentas</h2>
-      <div className="mt-4 bg-gray-800 p-4 rounded">
+    <div className="bg-gray-900 p-6 rounded-lg shadow-md max-w-4xl mx-auto h-full flex flex-col">
+      <h2 className="text-2xl text-gray-400 font-semibold flex-shrink-0">Mis Cuentas</h2>
+      <div className="mt-4 bg-gray-800 p-4 rounded flex-shrink-0">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-gray-300 text-sm mb-1">Compañía</label>
@@ -84,13 +84,15 @@ const AccountList: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="mt-6 space-y-4">
+      <div className="mt-6 flex-1 overflow-auto scrollbar-custom">
         {filteredAccounts.length === 0 ? (
           <p className="text-gray-500">No hay cuentas que coincidan con los filtros.</p>
         ) : (
-          filteredAccounts.map(account => (
-            <AccountItem key={account.id} account={account} />
-          ))
+          <div className="space-y-4">
+            {filteredAccounts.map(account => (
+              <AccountItem key={account.id} account={account} />
+            ))}
+          </div>
         )}
       </div>
     </div>

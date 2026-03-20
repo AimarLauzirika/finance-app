@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { FinanceState, Transaction, MyAccount, AccountTable, Company } from '../types';
+import type { FinanceState, Transaction, MyAccount, AccountTable, Company, ActiveAccount } from '../types';
 import { FinanceContext } from './FinanceContextObject';
 import { supabase } from '../lib/supabase';
 
@@ -12,11 +12,18 @@ const initialState: FinanceState = {
   myAccounts: [],
   accounts: [],
   companies: [],
+  activeAccounts: [],
 };
 
 // Load initial data from Supabase
-const getInitialData = async (): Promise<{ transactions: Transaction[], myAccounts: MyAccount[], accounts: AccountTable[], companies: Company[] }> => {
-  const [transactionsRes, myAccountsRes, accountsRes, companiesRes] = await Promise.all([
+const getInitialData = async (): Promise<{
+  transactions: Transaction[];
+  myAccounts: MyAccount[];
+  accounts: AccountTable[];
+  companies: Company[];
+  activeAccounts: ActiveAccount[];
+}> => {
+  const [transactionsRes, myAccountsRes, accountsRes, companiesRes, activeAccountsRes] = await Promise.all([
     supabase
       .from('transactions')
       .select('*')
@@ -30,7 +37,10 @@ const getInitialData = async (): Promise<{ transactions: Transaction[], myAccoun
       .select('*'),
     supabase
       .from('companies')
-      .select('*')
+      .select('*'),
+    supabase
+      .from('my_active_accounts')
+      .select('*'),
   ]);
 
   if (transactionsRes.error) {
@@ -63,10 +73,19 @@ const getInitialData = async (): Promise<{ transactions: Transaction[], myAccoun
     eval_pass: a.eval_pass,
   }));
 
+  const activeAccounts = (activeAccountsRes.data || []).map((a: any) => ({
+    ref: a.ref,
+    last_trade: a.last_trade,
+    withdrawal_date: a.withdrawal_date,
+    balance: a.balance,
+    current_mdd: a.current_mdd,
+    target_account: a.target_account,
+  }));
+
   const accounts = accountsRes.data || [];
   const companies = companiesRes.data || [];
 
-  return { transactions, myAccounts, accounts, companies };
+  return { transactions, myAccounts, accounts, companies, activeAccounts };
 };
 
 
@@ -76,7 +95,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   useEffect(() => {
     const loadData = async () => {
-      const { transactions, myAccounts, accounts, companies } = await getInitialData();
+      const { transactions, myAccounts, accounts, companies, activeAccounts } = await getInitialData();
       const initialTransaction = transactions.find(t => t.type === 'initial');
       setState({
         initialCapital: initialTransaction ? initialTransaction.amount : 0,
@@ -85,6 +104,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         myAccounts,
         accounts,
         companies,
+        activeAccounts,
       });
     };
     loadData();
@@ -231,6 +251,82 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  const updateMyAccount = async (id: string, updates: Partial<Omit<MyAccount, 'id'>>) => {
+    const { error } = await supabase
+      .from('my_accounts')
+      .update(updates)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating my_account:', error);
+      return;
+    }
+
+    setState(prev => ({
+      ...prev,
+      myAccounts: prev.myAccounts.map(a => (a.id === id ? { ...a, ...updates } : a)),
+    }));
+  };
+
+  const updateTransaction = async (id: string, updates: Partial<Omit<Transaction, 'id'>>) => {
+    const { error } = await supabase
+      .from('transactions')
+      .update(updates)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating transaction:', error);
+      return;
+    }
+
+    setState(prev => ({
+      ...prev,
+      transactions: prev.transactions.map(t => (t.id === id ? { ...t, ...updates } : t)),
+    }));
+  };
+
+  const updateActiveAccount = async (ref: string, updates: Partial<Omit<ActiveAccount, 'ref'>>) => {
+    const { error } = await supabase
+      .from('my_active_accounts')
+      .update(updates)
+      .eq('ref', ref);
+
+    if (error) {
+      console.error('Error updating active account:', error);
+      return;
+    }
+
+    setState(prev => ({
+      ...prev,
+      activeAccounts: prev.activeAccounts.map(a => (a.ref === ref ? { ...a, ...updates } : a)),
+    }));
+  };
+
+  const addActiveAccount = async (account: ActiveAccount) => {
+    const { data, error } = await supabase
+      .from('my_active_accounts')
+      .insert([account])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding active account:', error);
+      return;
+    }
+
+    setState(prev => ({
+      ...prev,
+      activeAccounts: [...prev.activeAccounts, {
+        ref: data.ref,
+        last_trade: data.last_trade,
+        withdrawal_date: data.withdrawal_date,
+        balance: data.balance,
+        current_mdd: data.current_mdd,
+        target_account: data.target_account,
+      }],
+    }));
+  };
+
   // Calculate balance and profit
   const totalIncome = state.transactions
     .filter(t => t.type === 'payout')
@@ -242,7 +338,22 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const profit = totalIncome - totalExpense;
 
   return (
-    <FinanceContext.Provider value={{ state, addTransaction, deleteTransaction, setInitialCapital, addMyAccount, balance, profit, transactionFormVisible: false, initialCapitalFormVisible: false, transactionListVisible: true }}>
+    <FinanceContext.Provider value={{
+      state,
+      addTransaction,
+      deleteTransaction,
+      setInitialCapital,
+      addMyAccount,
+      updateMyAccount,
+      updateTransaction,
+      addActiveAccount,
+      updateActiveAccount,
+      balance,
+      profit,
+      transactionFormVisible: false,
+      initialCapitalFormVisible: false,
+      transactionListVisible: true,
+    }}>
       {children}
     </FinanceContext.Provider>
   );

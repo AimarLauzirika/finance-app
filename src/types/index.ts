@@ -11,6 +11,7 @@ export interface Transaction {
 export interface Company {
   id: number;
   short_name: string;
+  long_name: string;
 }
 
 export interface AccountTable {
@@ -24,8 +25,17 @@ export interface MyAccount {
   account_id: number;
   date: string; // YYYY-MM-DD
   ref: string;
-  state: string;
+  state: 'active' | 'closed' | 'pending';
   eval_pass?: boolean;
+}
+
+export interface ActiveAccount {
+  ref: string; // primary key and matches my_accounts.ref
+  last_trade: string; // YYYY-MM-DD
+  withdrawal_date: string; // YYYY-MM-DD
+  balance: number;
+  current_mdd: number;
+  target_account: number;
 }
 
 export interface FinanceState {
@@ -35,6 +45,7 @@ export interface FinanceState {
   myAccounts: MyAccount[];
   accounts: AccountTable[];
   companies: Company[];
+  activeAccounts: ActiveAccount[];
 }
 
 export type FinanceAction =
@@ -48,6 +59,10 @@ export type FinanceContextValue = {
   deleteTransaction: (id: string) => Promise<void>;
   setInitialCapital: (capital: number, date: string) => Promise<void>;
   addMyAccount: (account: Omit<MyAccount, 'id'> & { cost?: number }) => Promise<void>;
+  updateMyAccount: (id: string, updates: Partial<Omit<MyAccount, 'id'>>) => Promise<void>;
+  updateTransaction: (id: string, updates: Partial<Omit<Transaction, 'id'>>) => Promise<void>;
+  addActiveAccount: (account: ActiveAccount) => Promise<void>;
+  updateActiveAccount: (ref: string, updates: Partial<Omit<ActiveAccount, 'ref'>>) => Promise<void>;
   balance: number;
   profit: number;
   transactionFormVisible: boolean;

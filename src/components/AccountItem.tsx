@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Eye, Award } from 'lucide-react';
+import { Plus, Eye, Award, Pencil, Save, X } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import TransactionForm from './TransactionForm';
 import AccountTransactionsModal from './AccountTransactionsModal';
@@ -12,9 +12,16 @@ interface AccountItemProps {
 }
 
 const AccountItem: React.FC<AccountItemProps> = ({ account }) => {
-  const { state } = useFinance();
+  const { state, updateMyAccount } = useFinance();
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValues, setEditValues] = useState({
+    date: account.date,
+    ref: account.ref,
+    state: account.state,
+    eval_pass: account.eval_pass ?? false,
+  });
 
   // Find account details
   const accountDetails = state.accounts.find(a => a.id === account.account_id);
@@ -34,16 +41,71 @@ const AccountItem: React.FC<AccountItemProps> = ({ account }) => {
 
   const accountName = company && accountDetails ? `${company.short_name} - ${accountDetails.name}` : `Cuenta ID: ${account.account_id}`;
 
+  const handleSave = async () => {
+    await updateMyAccount(account.id, {
+      date: editValues.date,
+      ref: editValues.ref,
+      state: editValues.state,
+      eval_pass: editValues.eval_pass,
+    });
+    setIsEditing(false);
+  };
+
   return (
     <div className="bg-gray-800 p-4 rounded-lg">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-gray-200 font-medium">{accountName}</p>
-          <p className="text-gray-500 text-sm">{format(new Date(account.date), 'dd/MM/yyyy')}</p>
-          <p className="text-gray-400 text-sm">Ref: {account.ref}</p>
-          <p className="text-gray-400 text-sm">Estado: {account.state}</p>
-          {!hasBuyTransaction && (
-            <p className="text-red-500 text-sm">⚠️ Sin transacción de compra</p>
+          {isEditing ? (
+            <div className="space-y-2">
+              <div>
+                <label className="text-gray-400 text-xs">Fecha</label>
+                <input
+                  type="date"
+                  value={editValues.date}
+                  onChange={(e) => setEditValues(prev => ({ ...prev, date: e.target.value }))}
+                  className="w-full bg-gray-900 text-gray-200 px-2 py-1 rounded"
+                />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs">Referencia</label>
+                <input
+                  value={editValues.ref}
+                  onChange={(e) => setEditValues(prev => ({ ...prev, ref: e.target.value }))}
+                  className="w-full bg-gray-900 text-gray-200 px-2 py-1 rounded"
+                />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs">Estado</label>
+                <select
+                  value={editValues.state}
+                  onChange={(e) => setEditValues(prev => ({ ...prev, state: e.target.value as any }))}
+                  className="w-full bg-gray-900 text-gray-200 px-2 py-1 rounded"
+                >
+                  <option value="active">Activa</option>
+                  <option value="closed">Cerrada</option>
+                  <option value="pending">Pendiente</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-gray-400 text-xs">Eval Pass</label>
+                <input
+                  type="checkbox"
+                  checked={editValues.eval_pass}
+                  onChange={(e) => setEditValues(prev => ({ ...prev, eval_pass: e.target.checked }))}
+                  className="w-4 h-4"
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-gray-200 font-medium">{accountName}</p>
+              <p className="text-gray-500 text-sm">{format(new Date(account.date), 'dd/MM/yyyy')}</p>
+              <p className="text-gray-400 text-sm">Ref: {account.ref}</p>
+              <p className="text-gray-400 text-sm">Estado: {account.state}</p>
+              {!hasBuyTransaction && (
+                <p className="text-red-500 text-sm">⚠️ Sin transacción de compra</p>
+              )}
+            </>
           )}
         </div>
         <div className='text-center'>
@@ -53,18 +115,43 @@ const AccountItem: React.FC<AccountItemProps> = ({ account }) => {
           <p className={`text-xl font-bold text-gray-300 ${accountResults > 0 ? 'text-green-600' : 'text-red-700'}`}>{formatCurrency(accountResults)}</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => setShowTransactionForm(!showTransactionForm)}
-            className="bg-amber-700 text-white px-3 py-1 rounded hover:bg-amber-600 flex items-center gap-1"
-            >
-            <Plus className="h-4 w-4" /> T
-          </button>
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-sky-900 text-white px-3 py-1 rounded hover:bg-sky-700 flex items-center gap-1"
-          >
-            <Eye className="h-4 w-4" /> T
-          </button>
+          {isEditing ? (
+            <>
+              <button
+                onClick={handleSave}
+                className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-500 flex items-center gap-1"
+              >
+                <Save className="h-4 w-4" /> Guardar
+              </button>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="bg-gray-700 text-white px-3 py-1 rounded hover:bg-gray-600 flex items-center gap-1"
+              >
+                <X className="h-4 w-4" /> Cancelar
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-500 flex items-center gap-1"
+              >
+                <Pencil className="h-4 w-4" /> Edit
+              </button>
+              <button
+                onClick={() => setShowTransactionForm(!showTransactionForm)}
+                className="bg-amber-700 text-white px-3 py-1 rounded hover:bg-amber-600 flex items-center gap-1"
+              >
+                <Plus className="h-4 w-4" /> T
+              </button>
+              <button
+                onClick={() => setShowModal(true)}
+                className="bg-sky-900 text-white px-3 py-1 rounded hover:bg-sky-700 flex items-center gap-1"
+              >
+                <Eye className="h-4 w-4" /> T
+              </button>
+            </>
+          )}
         </div>
       </div>
       {showTransactionForm && (

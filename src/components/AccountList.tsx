@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import AccountItem from './AccountItem';
 
@@ -8,18 +9,25 @@ const AccountList: React.FC = () => {
   const [stateFilter, setStateFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  const filteredAccounts = state.myAccounts.filter(account => {
-    const accountDetails = state.accounts.find(a => a.id === account.account_id);
-    const company = accountDetails ? state.companies.find(c => c.id === accountDetails.company_id) : null;
+  const filteredAccounts = state.myAccounts
+    .filter(account => {
+      const accountDetails = state.accounts.find(a => a.id === account.account_id);
+      const company = accountDetails ? state.companies.find(c => c.id === accountDetails.company_id) : null;
 
-    const matchesCompany = !companyFilter || (company && company.short_name.toLowerCase().includes(companyFilter.toLowerCase()));
-    const matchesState = !stateFilter || account.state.toLowerCase().includes(stateFilter.toLowerCase());
-    const matchesStartDate = !startDate || new Date(account.date) >= new Date(startDate);
-    const matchesEndDate = !endDate || new Date(account.date) <= new Date(endDate);
+      const matchesCompany = !companyFilter || (company && company.short_name.toLowerCase().includes(companyFilter.toLowerCase()));
+      const matchesState = !stateFilter || account.state.toLowerCase().includes(stateFilter.toLowerCase());
+      const matchesStartDate = !startDate || new Date(account.date) >= new Date(startDate);
+      const matchesEndDate = !endDate || new Date(account.date) <= new Date(endDate);
 
-    return matchesCompany && matchesState && matchesStartDate && matchesEndDate;
-  });
+      return matchesCompany && matchesState && matchesStartDate && matchesEndDate;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
 
   const uniqueCompanies = Array.from(new Set(
     state.myAccounts
@@ -37,6 +45,24 @@ const AccountList: React.FC = () => {
     <div className="bg-gray-900 p-6 rounded-lg shadow-md max-w-4xl mx-auto h-[calc(100vh-65px)] flex flex-col">
       <h2 className="text-2xl text-gray-400 font-semibold flex-shrink-0">Mis Cuentas</h2>
       <div className="mt-4 bg-gray-800 p-4 rounded flex-shrink-0">
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+            className="inline-flex items-center gap-2 rounded bg-gray-700 px-3 py-2 text-sm font-medium hover:bg-gray-600 text-gray-200"
+          >
+            {sortOrder === 'desc' ? (
+              <>
+                <ChevronDown size={16} />
+                <span>Nuevas a Viejas</span>
+              </>
+            ) : (
+              <>
+                <ChevronUp size={16} />
+                <span>Viejas a Nuevas</span>
+              </>
+            )}
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-gray-300 text-sm mb-1">Compañía</label>

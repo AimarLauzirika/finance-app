@@ -74,196 +74,220 @@ const ActiveAccounts: React.FC = () => {
   return (
     <div className="flex h-full flex-col gap-6">
       <div className="bg-gray-900 p-6 rounded-lg shadow-md">
-        <h2 className="text-2xl text-gray-400 font-semibold mb-2">Active Accounts</h2>
+        <h2 className="text-2xl text-gray-400 font-semibold mb-2">Cuentas Activas</h2>
         <p className="text-sm text-gray-500">
-          This view lists your active accounts and lets you track progress toward your target account balance.
+          Vista de tabla de cuentas activas. Gestiona y monitorea el progreso de tus cuentas.
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="flex-1 overflow-auto">
         {activeMyAccounts.length === 0 ? (
           <div className="bg-gray-900 p-6 rounded-lg shadow-md">
-            <p className="text-gray-400">No active accounts found. Mark an account as active to get started.</p>
+            <p className="text-gray-400">No hay cuentas activas. Marca una cuenta como activa para comenzar.</p>
           </div>
-        ) : null}
+        ) : (
+          <table className="w-full border-collapse bg-gray-900 text-sm">
+            <thead>
+              <tr className="border-b border-gray-700 bg-gray-800">
+                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Cuenta</th>
+                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Ref</th>
+                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Último Trade</th>
+                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Fecha Retiro</th>
+                <th className="px-4 py-3 text-right text-gray-300 font-semibold">MDD</th>
+                <th className="px-4 py-3 text-right text-gray-300 font-semibold">Balance</th>
+                <th className="px-4 py-3 text-right text-gray-300 font-semibold">Target</th>
+                <th className="px-4 py-3 text-center text-gray-300 font-semibold">Progreso</th>
+                <th className="px-4 py-3 text-center text-gray-300 font-semibold">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeMyAccounts.map((myAccount) => {
+                const activeAccount = activeAccountMap[myAccount.ref];
+                const account = state.accounts.find(a => a.id === myAccount.account_id);
+                const accountName = account?.name ?? 'Desconocida';
+                const companyShortName = account ? companiesById[account.company_id] ?? 'Unknown' : 'Unknown';
+                const companyName = account ? companiesByIdLong[account.company_id] ?? 'Unknown' : 'Unknown';
 
-        {activeMyAccounts.map((myAccount) => {
-          const activeAccount = activeAccountMap[myAccount.ref];
-          const account = state.accounts.find(a => a.id === myAccount.account_id);
-          const accountName = account?.name ?? 'Unknown account';
-          const companyShortName = account ? companiesById[account.company_id] ?? 'Unknown' : 'Unknown';
-          const companyName = account ? companiesByIdLong[account.company_id] ?? 'Unknown' : 'Unknown';
+                const progress = activeAccount?.target_account
+                  ? (activeAccount.balance - activeAccount.current_mdd) / (activeAccount.target_account - activeAccount.current_mdd)
+                  : 0;
 
-          const progress = activeAccount?.target_account
-            ? (activeAccount.balance - activeAccount.current_mdd) / (activeAccount.target_account - activeAccount.current_mdd)
-            : 0;
+                if (!activeAccount) {
+                  return (
+                    <tr key={myAccount.id} className="border-b border-gray-700 hover:bg-gray-800">
+                      <td colSpan={9} className="px-4 py-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {account && account.company_id && (
+                              <img
+                                src={`/logos/${companyShortName}.png`}
+                                alt={companyName}
+                                className="w-6 h-6 flex-shrink-0"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            )}
+                            <div>
+                              <p className="text-gray-200">{accountName}</p>
+                              <p className="text-xs text-gray-500">{companyName}</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => createActiveRecord(myAccount.ref)}
+                            className="inline-flex items-center gap-2 rounded bg-emerald-600 px-3 py-1 text-sm font-medium hover:bg-emerald-500"
+                          >
+                            <PlusCircle size={16} />
+                            <span>Crear</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
 
-          return (
-            <div key={myAccount.id} className="bg-gray-900 p-6 rounded-lg shadow-md">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  {account && account.company_id && (
-                    <img
-                      src={`/src/assets/logos/${companyShortName}.png`}
-                      alt={companyName}
-                      className="w-16 h-full flex-shrink-0 my-auto"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  )}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-200">{accountName}</h3>
-                    <p className="text-sm text-gray-500">{companyName}</p>
-                    <p className="text-sm text-gray-500">{myAccount.ref}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {activeAccount ? (
-                    <>
-                      <button
-                        onClick={() => (editingRef === myAccount.ref ? cancelEditing() : startEditing(myAccount.ref))}
-                        className="inline-flex items-center gap-2 rounded bg-blue-600 px-3 py-1 text-sm font-medium hover:bg-blue-500"
-                      >
-                        <Pencil size={16} />
-                        <span>{editingRef === myAccount.ref ? 'Cancel' : 'Edit'}</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (window.confirm('Are you sure you want to close this account? This action cannot be undone.')) {
-                            closeAccount(myAccount.ref);
-                          }
-                        }}
-                        className="inline-flex items-center gap-2 rounded bg-red-600 px-3 py-1 text-sm font-medium hover:bg-red-500"
-                      >
-                        <Trash2 size={16} />
-                        <span>Close</span>
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => createActiveRecord(myAccount.ref)}
-                      className="inline-flex items-center gap-2 rounded bg-emerald-600 px-3 py-1 text-sm font-medium hover:bg-emerald-500"
-                    >
-                      <PlusCircle size={16} />
-                      <span>Create</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {activeAccount ? (
-                <div className="mt-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div>
-                      <p className="text-xs text-gray-400">Last trade</p>
+                return (
+                  <tr key={myAccount.id} className="border-b border-gray-700 hover:bg-gray-800">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        {account && account.company_id && (
+                          <img
+                            src={`/logos/${companyShortName}.png`}
+                            alt={companyName}
+                            className="w-6 h-6 flex-shrink-0"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        )}
+                        <div>
+                          <p className="text-gray-200 font-medium">{accountName}</p>
+                          <p className="text-xs text-gray-500">{companyName}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-300">{myAccount.ref}</td>
+                    <td className="px-4 py-3">
                       {editingRef === myAccount.ref ? (
                         <input
                           type="date"
                           value={editValues.last_trade ?? activeAccount.last_trade}
                           onChange={(e) => setEditValues(prev => ({ ...prev, last_trade: e.target.value }))}
-                          className="mt-1 w-full rounded bg-gray-800 px-2 py-1 text-gray-200"
+                          className="rounded bg-gray-800 px-2 py-1 text-gray-200"
                         />
                       ) : (
-                        <p className="text-sm text-gray-200">{activeAccount.last_trade}</p>
+                        <span className="text-gray-300">{activeAccount.last_trade}</span>
                       )}
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Withdrawal date</p>
+                    </td>
+                    <td className="px-4 py-3">
                       {editingRef === myAccount.ref ? (
                         <input
                           type="date"
                           value={editValues.withdrawal_date ?? activeAccount.withdrawal_date}
                           onChange={(e) => setEditValues(prev => ({ ...prev, withdrawal_date: e.target.value }))}
-                          className="mt-1 w-full rounded bg-gray-800 px-2 py-1 text-gray-200"
+                          className="rounded bg-gray-800 px-2 py-1 text-gray-200"
                         />
                       ) : (
-                        <p className="text-sm text-gray-200">{activeAccount.withdrawal_date}</p>
+                        <span className="text-gray-300">{activeAccount.withdrawal_date}</span>
                       )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-400">Max Drawdown</p>
-                      {editingRef === myAccount.ref ? (
-                        <input
-                        type="number"
-                        value={editValues.current_mdd ?? activeAccount.current_mdd}
-                        onChange={(e) => setEditValues(prev => ({ ...prev, current_mdd: parseFloat(e.target.value) }))}
-                        className="mt-1 w-full rounded bg-gray-800 px-2 py-1 text-gray-200"
-                        />
-                      ) : (
-                        <p className="text-sm text-gray-200">{formatCurrency(activeAccount.current_mdd)}</p>
-                      )}
-                    </div>
-                    <div className='text-center'>
-                      <p className="text-xs text-gray-400">Balance</p>
+                    </td>
+                    <td className="px-4 py-3 text-right">
                       {editingRef === myAccount.ref ? (
                         <input
                           type="number"
+                          step="0.01"
+                          value={editValues.current_mdd ?? activeAccount.current_mdd}
+                          onChange={(e) => setEditValues(prev => ({ ...prev, current_mdd: parseFloat(e.target.value) || 0 }))}
+                          className="w-full rounded bg-gray-800 px-2 py-1 text-gray-200"
+                        />
+                      ) : (
+                        <span className="text-gray-300">{formatCurrency(activeAccount.current_mdd)}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {editingRef === myAccount.ref ? (
+                        <input
+                          type="number"
+                          step="0.01"
                           value={editValues.balance ?? activeAccount.balance}
-                          onChange={(e) => setEditValues(prev => ({ ...prev, balance: parseFloat(e.target.value) }))}
-                          className="mt-1 w-full rounded bg-gray-800 px-2 py-1 text-gray-200"
+                          onChange={(e) => setEditValues(prev => ({ ...prev, balance: parseFloat(e.target.value) || 0 }))}
+                          className="w-full rounded bg-gray-800 px-2 py-1 text-gray-200"
                         />
                       ) : (
-                        <p className="text-sm text-gray-200">{formatCurrency(activeAccount.balance)}</p>
+                        <span className="text-gray-300">{formatCurrency(activeAccount.balance)}</span>
                       )}
-                    </div>
-                    <div className='text-right'>
-                      <p className="text-xs text-gray-400">Target</p>
+                    </td>
+                    <td className="px-4 py-3 text-right">
                       {editingRef === myAccount.ref ? (
                         <input
                           type="number"
+                          step="0.01"
                           value={editValues.target_account ?? activeAccount.target_account}
-                          onChange={(e) => setEditValues(prev => ({ ...prev, target_account: parseFloat(e.target.value) }))}
-                          className="mt-1 w-full rounded bg-gray-800 px-2 py-1 text-gray-200"
+                          onChange={(e) => setEditValues(prev => ({ ...prev, target_account: parseFloat(e.target.value) || 0 }))}
+                          className="w-full rounded bg-gray-800 px-2 py-1 text-gray-200"
                         />
                       ) : (
-                        <p className="text-sm text-gray-200">{formatCurrency(activeAccount.target_account)}</p>
+                        <span className="text-gray-300">{formatCurrency(activeAccount.target_account)}</span>
                       )}
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <div className="h-2 w-full rounded-full bg-gray-800">
-                      <div
-                        className={`h-full rounded-full ${progress < 1 ? 'bg-blue-500' : 'bg-green-500'}`}
-                        style={{ width: `${progress * 100}%` }}
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-gray-400">
-                      Progress: {Math.round(progress * 100)}% ({formatCurrency(activeAccount.balance - activeAccount.current_mdd)} / {formatCurrency(activeAccount.target_account -  activeAccount.balance)})
-                    </p>
-                  </div>
-
-                  {editingRef === myAccount.ref ? (
-                    <div className="mt-4 flex items-center gap-2">
-                      <button
-                        onClick={saveEdits}
-                        className="inline-flex items-center gap-2 rounded bg-blue-600 px-3 py-1 text-sm font-medium hover:bg-blue-500"
-                      >
-                        <Save size={16} />
-                        <span>Save</span>
-                      </button>
-                      <button
-                        onClick={cancelEditing}
-                        className="inline-flex items-center gap-2 rounded bg-gray-700 px-3 py-1 text-sm font-medium hover:bg-gray-600"
-                      >
-                        <X size={16} />
-                        <span>Cancel</span>
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="mt-4">
-                  <p className="text-sm text-gray-400">No active account record found for this reference.</p>
-                </div>
-              )}
-            </div>
-          );
-        })}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="w-full bg-gray-800 rounded-full h-2">
+                        <div
+                          className={`h-full rounded-full ${progress < 1 ? 'bg-blue-500' : 'bg-green-500'}`}
+                          style={{ width: `${Math.min(progress * 100, 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">{Math.round(progress * 100)}%</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center gap-2">
+                        {editingRef === myAccount.ref ? (
+                          <>
+                            <button
+                              onClick={saveEdits}
+                              className="rounded bg-blue-600 px-2 py-1 text-sm font-medium hover:bg-blue-500"
+                              title="Guardar cambios"
+                            >
+                              <Save size={16} />
+                            </button>
+                            <button
+                              onClick={cancelEditing}
+                              className="rounded bg-gray-700 px-2 py-1 text-sm font-medium hover:bg-gray-600"
+                              title="Cancelar"
+                            >
+                              <X size={16} />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => startEditing(myAccount.ref)}
+                              className="rounded bg-blue-600 px-2 py-1 text-sm font-medium hover:bg-blue-500"
+                              title="Editar"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm('¿Estás seguro de que quieres cerrar esta cuenta? Esta acción no se puede deshacer.')) {
+                                  closeAccount(myAccount.ref);
+                                }
+                              }}
+                              className="rounded bg-red-900 px-2 py-1 text-sm font-medium hover:bg-red-700 text-red-300"
+                              title="Cerrar cuenta"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

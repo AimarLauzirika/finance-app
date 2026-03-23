@@ -10,32 +10,61 @@ const AccountForm: React.FC = () => {
   const [ref, setRef] = useState('');
   const [state, setState] = useState<'active' | 'closed' | 'pending'>('active');
   const [cost, setCost] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setSuccess(false);
+
     const numAccountId = parseInt(accountId);
     const numCost = parseFloat(cost);
     if (numAccountId > 0 && ref.trim() && date && state && numCost >= 0) {
-      await addMyAccount({
-        account_id: numAccountId,
-        date,
-        ref: ref.trim(),
-        state,
-        cost: numCost,
-      });
+      try {
+        await addMyAccount({
+          account_id: numAccountId,
+          date,
+          ref: ref.trim(),
+          state,
+          cost: numCost,
+        });
 
-      // Reset form
-      setAccountId('');
-      setRef('');
-      setState('active');
-      setCost('');
-      setDate(format(new Date(), 'yyyy-MM-dd'));
+        setAccountId('');
+        setRef('');
+        setState('active');
+        setCost('');
+        setDate(format(new Date(), 'yyyy-MM-dd'));
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      } catch (err: any) {
+        const errorMessage = err?.message || 'Error al agregar la cuenta. Verifica que la referencia sea única.';
+        setError(errorMessage);
+        console.error('Error:', err);
+      }
+    } else {
+      setError('Completa todos los campos correctamente.');
     }
   };
 
   return (
     <div className="bg-gray-900 p-6 rounded-lg shadow-md mb-6 max-w-xl mx-auto">
       <h2 className="text-2xl text-gray-400 font-semibold">Agregar Cuenta {<Plus className="inline font-bold h-6 w-6 stroke-[3]" />}</h2>
+      
+      {error && (
+        <div className="mt-4 p-4 bg-red-900 border border-red-700 rounded text-red-200">
+          <p className="font-medium">Error</p>
+          <p className="text-sm mt-1">{error}</p>
+        </div>
+      )}
+      
+      {success && (
+        <div className="mt-4 p-4 bg-green-900 border border-green-700 rounded text-green-200">
+          <p className="font-medium">Éxito</p>
+          <p className="text-sm mt-1">La cuenta ha sido agregada correctamente.</p>
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className="space-y-6 mt-6">
         <div className='flex gap-4'>
           <div className='flex-1'>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import TransactionItem from './TransactionItem';
 
@@ -7,11 +8,13 @@ const TransactionList: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Sort transactions by date descending
-  const sortedTransactions = [...state.transactions].sort((a, b) =>
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  const sortedTransactions = [...state.transactions].sort((a, b) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+  });
 
   const filteredTransactions = sortedTransactions.filter(transaction => {
     const matchesType = !typeFilter || transaction.type === typeFilter;
@@ -27,6 +30,24 @@ const TransactionList: React.FC = () => {
     <div className="bg-gray-900 p-6 rounded-lg shadow-md max-w-4xl mx-auto h-[calc(100vh-65px)] flex flex-col">
       <h2 className="text-gray-400 text-2xl font-semibold flex-shrink-0">Transacciones</h2>
       <div className="mt-4 bg-gray-800 p-4 rounded flex-shrink-0">
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+            className="inline-flex items-center gap-2 rounded bg-gray-700 px-3 py-2 text-sm font-medium hover:bg-gray-600 text-gray-200"
+          >
+            {sortOrder === 'desc' ? (
+              <>
+                <ChevronDown size={16} />
+                <span>Nuevas a Viejas</span>
+              </>
+            ) : (
+              <>
+                <ChevronUp size={16} />
+                <span>Viejas a Nuevas</span>
+              </>
+            )}
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-gray-300 text-sm mb-1">Tipo</label>

@@ -224,7 +224,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     if (error) {
       console.error('Error adding my_account:', error);
-      return;
+      throw new Error(error.message || 'Error al agregar la cuenta. Verifica que la referencia sea única.');
     }
 
     // Add to state

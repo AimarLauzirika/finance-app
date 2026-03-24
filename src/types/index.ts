@@ -31,6 +31,7 @@ export interface MyAccount {
 
 export interface ActiveAccount {
   ref: string; // primary key and matches my_accounts.ref
+  stage: string;
   last_trade: string; // YYYY-MM-DD
   withdrawal_date: string; // YYYY-MM-DD
   balance: number;

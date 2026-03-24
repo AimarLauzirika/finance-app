@@ -75,6 +75,7 @@ const getInitialData = async (): Promise<{
 
   const activeAccounts = (activeAccountsRes.data || []).map((a: any) => ({
     ref: a.ref,
+    stage: a.stage,
     last_trade: a.last_trade,
     withdrawal_date: a.withdrawal_date,
     balance: a.balance,
@@ -318,6 +319,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       ...prev,
       activeAccounts: [...prev.activeAccounts, {
         ref: data.ref,
+        stage: data.stage,
         last_trade: data.last_trade,
         withdrawal_date: data.withdrawal_date,
         balance: data.balance,

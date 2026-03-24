@@ -39,7 +39,7 @@ const AccountItem: React.FC<AccountItemProps> = ({ account }) => {
     .reduce((sum, t) => sum + t.amount, 0);
   const accountResults = totalPayouts - totalExpenses
 
-  const accountName = company && accountDetails ? `${company.short_name} - ${accountDetails.name}` : `Cuenta ID: ${account.account_id}`;
+  const accountName = company && accountDetails ? `${company.short_name} - ${accountDetails.name} (${account.account_id})` : `Cuenta ID: ${account.account_id}`;
 
   const handleSave = async () => {
     await updateMyAccount(account.id, {

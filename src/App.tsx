@@ -5,6 +5,7 @@ import { FinanceProvider } from './context/FinanceContext';
 import BalanceDisplay from './components/BalanceDisplay';
 import AccountForm from './components/AccountForm';
 import AccountList from './components/AccountList';
+import AccountStatsHeader from './components/AccountStatsHeader';
 import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
 import ActiveAccounts from './components/ActiveAccounts';
@@ -15,6 +16,7 @@ function App() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState<'balance' | 'accounts' | 'transactions' | 'active'>('balance');
+  const [filteredAccountIds, setFilteredAccountIds] = useState<string[]>([]);
 
   useEffect(() => {
     // Check initial session
@@ -58,11 +60,12 @@ function App() {
         return (
           <div className="flex flex-col lg:flex-row gap-4 h-full">
             <div className="lg:w-1/3">
+              <AccountStatsHeader accountIds={filteredAccountIds} />
               <AccountForm />
             </div>
             {/* <div className="lg:flex-1 max-h-screen"> */}
             <div className="lg:flex-1">
-              <AccountList />
+              <AccountList onFilteredAccountsChange={setFilteredAccountIds} />
             </div>
           </div>
         );

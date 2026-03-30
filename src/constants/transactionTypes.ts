@@ -1,9 +1,10 @@
 
 export const TRANSACTION_TYPES = {
-  initial: 'Capital Inicial',
+  // initial: 'Capital Inicial',
   buy_account: 'Compra Cuenta',
   activation_fee: 'Tarifa Activación',
   reset_account: 'Reset Cuenta',
+  renew_subscription: 'Renovar Suscripción',
   VPS: 'VPS',
   payout: 'Pago',
   dividends: 'Dividendos',

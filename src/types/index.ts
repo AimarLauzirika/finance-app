@@ -6,6 +6,7 @@ export interface Transaction {
   amount: number;
   date: string; // YYYY-MM-DD
   my_account_id?: string; // Optional foreign key to my_accounts.id
+  info?: string; // Optional comment/note about the transaction
 }
 
 export interface Company {
@@ -27,6 +28,7 @@ export interface MyAccount {
   ref: string;
   state: 'active' | 'closed' | 'pending';
   eval_pass?: boolean;
+  cost?: number;
 }
 
 export interface ActiveAccount {
@@ -39,18 +41,23 @@ export interface ActiveAccount {
   target_account: number;
 }
 
+export interface BankAccount {
+  id?: string;
+  date: string; // YYYY-MM-DD
+  wise_usd: number;
+  rise_usd: number;
+}
+
 export interface FinanceState {
-  initialCapital: number;
-  initialCapitalDate: string; // YYYY-MM-DD
   transactions: Transaction[];
   myAccounts: MyAccount[];
   accounts: AccountTable[];
   companies: Company[];
   activeAccounts: ActiveAccount[];
+  bankAccounts: BankAccount[];
 }
 
 export type FinanceAction =
-  | { type: 'SET_INITIAL_CAPITAL'; payload: number }
   | { type: 'ADD_TRANSACTION'; payload: Omit<Transaction, 'id'> }
   | { type: 'DELETE_TRANSACTION'; payload: string };
 
@@ -58,7 +65,6 @@ export type FinanceContextValue = {
   state: FinanceState;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<Transaction | undefined>;
   deleteTransaction: (id: string) => Promise<void>;
-  setInitialCapital: (capital: number, date: string) => Promise<void>;
   addMyAccount: (account: Omit<MyAccount, 'id'> & { cost?: number }) => Promise<void>;
   updateMyAccount: (id: string, updates: Partial<Omit<MyAccount, 'id'>>) => Promise<void>;
   updateTransaction: (id: string, updates: Partial<Omit<Transaction, 'id'>>) => Promise<void>;
@@ -68,6 +74,5 @@ export type FinanceContextValue = {
   balance: number;
   profit: number;
   transactionFormVisible: boolean;
-  initialCapitalFormVisible: boolean;
   transactionListVisible: boolean;
 };

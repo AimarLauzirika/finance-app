@@ -10,12 +10,13 @@ type TransactionRow = {
   type: TransactionType;
   amount: string;
   date: string;
+  info: string;
 };
 
 const TransactionForm: React.FC<{ accountId?: string; onClose?: () => void }> = ({ accountId, onClose }) => {
   const { addTransaction } = useFinance();
   const [rows, setRows] = useState<TransactionRow[]>([
-    { id: crypto.randomUUID(), type: 'buy_account', amount: '', date: format(new Date(), 'yyyy-MM-dd') },
+    { id: crypto.randomUUID(), type: 'buy_account', amount: '', date: format(new Date(), 'yyyy-MM-dd'), info: '' },
   ]);
 
   const handleRowChange = (id: string, field: keyof Omit<TransactionRow, 'id'>, value: string) => {
@@ -25,7 +26,7 @@ const TransactionForm: React.FC<{ accountId?: string; onClose?: () => void }> = 
   const addRow = () => {
     setRows(current => [
       ...current,
-      { id: crypto.randomUUID(), type: 'buy_account', amount: '', date: format(new Date(), 'yyyy-MM-dd') },
+      { id: crypto.randomUUID(), type: 'buy_account', amount: '', date: format(new Date(), 'yyyy-MM-dd'), info: '' },
     ]);
   };
 
@@ -41,6 +42,7 @@ const TransactionForm: React.FC<{ accountId?: string; onClose?: () => void }> = 
         type: row.type,
         amount: parseFloat(row.amount),
         date: row.date,
+        info: row.info || undefined,
       }))
       .filter(row => row.amount > 0 && row.date);
 
@@ -58,7 +60,7 @@ const TransactionForm: React.FC<{ accountId?: string; onClose?: () => void }> = 
     );
 
     // Reset form
-    setRows([{ id: crypto.randomUUID(), type: 'buy_account', amount: '', date: format(new Date(), 'yyyy-MM-dd') }]);
+    setRows([{ id: crypto.randomUUID(), type: 'buy_account', amount: '', date: format(new Date(), 'yyyy-MM-dd'), info: '' }]);
     onClose?.();
   };
 
@@ -102,7 +104,7 @@ const TransactionForm: React.FC<{ accountId?: string; onClose?: () => void }> = 
                       ))}
                   {accountId &&
                     Object.entries(TRANSACTION_TYPES)
-                      .filter(([key]) => key === 'payout' || key === 'buy_account' || key === 'reset_account' || key === 'activation_fee')
+                      .filter(([key]) => key === 'payout' || key === 'buy_account' || key === 'reset_account' || key === 'activation_fee' || key === 'renew_subscription')
                       .map(([key, label]) => (
                         <option key={key} value={key}>
                           {label}
@@ -133,6 +135,16 @@ const TransactionForm: React.FC<{ accountId?: string; onClose?: () => void }> = 
                   required
                 />
               </div>
+            </div>
+            <div>
+              <label className="block text-gray-600 text-sm font-medium mb-2">Información (opcional)</label>
+              <textarea
+                value={row.info}
+                onChange={e => handleRowChange(row.id, 'info', e.target.value)}
+                className="w-full bg-gray-700 text-white px-3 py-2 rounded resize-none"
+                placeholder="Agregar notas o comentarios..."
+                rows={2}
+              />
             </div>
           </div>
         ))}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowUp, ArrowDown, Trash2, Play, Pencil, Save, X } from 'lucide-react';
+import { ArrowUp, ArrowDown, Trash2, Pencil, Save, X } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import type { Transaction } from '../types';
 import { TRANSACTION_TYPES } from '../constants/transactionTypes';
@@ -16,6 +16,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
     type: transaction.type,
     amount: transaction.amount.toString(),
     date: transaction.date,
+    info: transaction.info || '',
   });
 
   const handleDelete = () => {
@@ -32,6 +33,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
       type: editData.type,
       amount,
       date: editData.date,
+      info: editData.info || undefined,
     });
 
     setIsEditing(false);
@@ -40,38 +42,45 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
   return (
     <div className="flex items-center justify-between p-2 border-b border-gray-700">
       <div className="flex items-center gap-3 flex-1">
-        {transaction.type === 'initial' ? (
-          <Play className="w-5 h-5 text-blue-600 flex-shrink-0" />
-        ) : transaction.type === 'payout' ? (
+        {transaction.type === 'payout' ? (
           <ArrowUp className="w-5 h-5 text-green-600 flex-shrink-0" />
         ) : (
           <ArrowDown className="w-5 h-5 text-red-600 flex-shrink-0" />
         )}
         <div className="flex-1 min-w-0">
           {isEditing ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <select
-                value={editData.type}
-                onChange={(e) => setEditData(prev => ({ ...prev, type: e.target.value as any }))}
-                className="bg-gray-800 text-white px-2 py-1 rounded"
-              >
-                {Object.entries(TRANSACTION_TYPES).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                value={editData.amount}
-                onChange={(e) => setEditData(prev => ({ ...prev, amount: e.target.value }))}
-                className="bg-gray-800 text-white px-2 py-1 rounded"
-              />
-              <input
-                type="date"
-                value={editData.date}
-                onChange={(e) => setEditData(prev => ({ ...prev, date: e.target.value }))}
-                className="bg-gray-800 text-white px-2 py-1 rounded"
+            <div className="grid grid-cols-1 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <select
+                  value={editData.type}
+                  onChange={(e) => setEditData(prev => ({ ...prev, type: e.target.value as any }))}
+                  className="bg-gray-800 text-white px-2 py-1 rounded"
+                >
+                  {Object.entries(TRANSACTION_TYPES).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  value={editData.amount}
+                  onChange={(e) => setEditData(prev => ({ ...prev, amount: e.target.value }))}
+                  className="bg-gray-800 text-white px-2 py-1 rounded"
+                />
+                <input
+                  type="date"
+                  value={editData.date}
+                  onChange={(e) => setEditData(prev => ({ ...prev, date: e.target.value }))}
+                  className="bg-gray-800 text-white px-2 py-1 rounded"
+                />
+              </div>
+              <textarea
+                value={editData.info}
+                onChange={(e) => setEditData(prev => ({ ...prev, info: e.target.value }))}
+                className="bg-gray-800 text-white px-2 py-1 rounded resize-none"
+                placeholder="Información (opcional)"
+                rows={2}
               />
             </div>
           ) : (
@@ -80,6 +89,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
                 {TRANSACTION_TYPES[transaction.type]}
               </p>
               <p className="text-sm text-gray-500">{format(new Date(transaction.date), 'dd/MM/yyyy')}</p>
+              {transaction.info && <p className="text-sm text-gray-400 mt-1">{transaction.info}</p>}
             </>
           )}
         </div>
@@ -87,9 +97,9 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
       <div className="flex justify-center flex-1">
         {!isEditing && (
           <div className={`text-sm font-medium ${
-            transaction.type === 'initial' ? 'text-blue-500' : transaction.type === 'payout' ? 'text-green-600' : 'text-red-600'
+            transaction.type === 'payout' ? 'text-green-600' : 'text-red-600'
           }`}>
-            {transaction.type === 'initial' ? '' : transaction.type === 'payout' ? '+' : '-'}${transaction.amount.toFixed(2)}
+            {transaction.type === 'payout' ? '+' : '-'}${transaction.amount.toFixed(2)}
           </div>
         )}
       </div>

@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { FinanceState, Transaction, MyAccount, AccountTable, Company, ActiveAccount } from '../types';
+import type { FinanceState, Transaction, MyAccount, AccountTable, Company, ActiveAccount, BankAccount } from '../types';
 import { FinanceContext } from './FinanceContextObject';
 import { supabase } from '../lib/supabase';
 
 // Initial state
 const initialState: FinanceState = {
-  initialCapital: 0,
-  initialCapitalDate: '',
   transactions: [],
   myAccounts: [],
   accounts: [],
   companies: [],
   activeAccounts: [],
+  bankAccounts: [],
 };
 
 // Load initial data from Supabase
@@ -22,8 +21,9 @@ const getInitialData = async (): Promise<{
   accounts: AccountTable[];
   companies: Company[];
   activeAccounts: ActiveAccount[];
+  bankAccounts: BankAccount[];
 }> => {
-  const [transactionsRes, myAccountsRes, accountsRes, companiesRes, activeAccountsRes] = await Promise.all([
+  const [transactionsRes, myAccountsRes, accountsRes, companiesRes, activeAccountsRes, bankAccountsRes] = await Promise.all([
     supabase
       .from('transactions')
       .select('*')
@@ -41,6 +41,10 @@ const getInitialData = async (): Promise<{
     supabase
       .from('my_active_accounts')
       .select('*'),
+    supabase
+      .from('bank_accounts')
+      .select('*')
+      .order('date', { ascending: false }),
   ]);
 
   if (transactionsRes.error) {
@@ -62,6 +66,7 @@ const getInitialData = async (): Promise<{
     amount: t.amount,
     date: t.date,
     my_account_id: t.my_account_id,
+    info: t.info,
   }));
 
   const myAccounts = (myAccountsRes.data || []).map((a: any) => ({
@@ -85,8 +90,14 @@ const getInitialData = async (): Promise<{
 
   const accounts = accountsRes.data || [];
   const companies = companiesRes.data || [];
+  
+  const bankAccounts = (bankAccountsRes.data || []).map((b: any) => ({
+    date: b.date,
+    wise_usd: b.wise_usd,
+    rise_usd: b.rise_usd,
+  }));
 
-  return { transactions, myAccounts, accounts, companies, activeAccounts };
+  return { transactions, myAccounts, accounts, companies, activeAccounts, bankAccounts };
 };
 
 
@@ -96,16 +107,14 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   useEffect(() => {
     const loadData = async () => {
-      const { transactions, myAccounts, accounts, companies, activeAccounts } = await getInitialData();
-      const initialTransaction = transactions.find(t => t.type === 'initial');
+      const { transactions, myAccounts, accounts, companies, activeAccounts, bankAccounts } = await getInitialData();
       setState({
-        initialCapital: initialTransaction ? initialTransaction.amount : 0,
-        initialCapitalDate: initialTransaction ? initialTransaction.date : '',
         transactions,
         myAccounts,
         accounts,
         companies,
         activeAccounts,
+        bankAccounts,
       });
     };
     loadData();
@@ -119,6 +128,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         amount: transaction.amount,
         date: transaction.date,
         my_account_id: transaction.my_account_id,
+        info: transaction.info,
       }])
       .select()
       .single();
@@ -134,6 +144,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       amount: data.amount,
       date: data.date,
       my_account_id: data.my_account_id,
+      info: data.info,
     };
 
     setState(prev => ({
@@ -159,60 +170,6 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       ...prev,
       transactions: prev.transactions.filter(t => t.id !== id),
     }));
-  };
-
-  const setInitialCapital = async (capital: number, date: string) => {
-    // Check if initial transaction exists
-    const existingInitial = state.transactions.find(t => t.type === 'initial');
-    let insertedData: Transaction | null = null;
-    if (existingInitial) {
-      // Update existing
-      const { error } = await supabase
-        .from('transactions')
-        .update({ amount: capital, date })
-        .eq('id', existingInitial.id);
-
-      if (error) {
-        console.error('Error updating initial capital:', error);
-        return;
-      }
-    } else {
-      // Insert new
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert([{
-          type: 'initial',
-          amount: capital,
-          date,
-          // account_id: null,
-        }])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error adding initial capital:', error);
-        return;
-      }
-      insertedData = data;
-    }
-
-    setState(prev => {
-      const updatedTransactions = existingInitial
-        ? prev.transactions.map(t => (t.type === 'initial' ? { ...t, amount: capital, date } : t))
-        : [...prev.transactions, {
-            id: insertedData!.id,
-            type: insertedData!.type,
-            amount: insertedData!.amount,
-            date: insertedData!.date,
-          }];
-
-      return {
-        ...prev,
-        initialCapital: capital,
-        initialCapitalDate: date,
-        transactions: updatedTransactions,
-      };
-    });
   };
 
   const addMyAccount = async (account: Omit<MyAccount, 'id'> & { cost?: number }) => {
@@ -369,9 +326,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     .filter(t => t.type === 'payout')
     .reduce((sum, t) => sum + t.amount, 0);
   const totalExpense = state.transactions
-    .filter(t => t.type !== 'payout' && t.type !== 'initial')
+    .filter(t => t.type !== 'payout')
     .reduce((sum, t) => sum + t.amount, 0);
-  const balance = state.initialCapital + totalIncome - totalExpense;
+  const balance = totalIncome - totalExpense;
   const profit = totalIncome - totalExpense;
 
   return (
@@ -379,7 +336,6 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       state,
       addTransaction,
       deleteTransaction,
-      setInitialCapital,
       addMyAccount,
       updateMyAccount,
       updateTransaction,
@@ -389,7 +345,6 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       balance,
       profit,
       transactionFormVisible: false,
-      initialCapitalFormVisible: false,
       transactionListVisible: true,
     }}>
       {children}

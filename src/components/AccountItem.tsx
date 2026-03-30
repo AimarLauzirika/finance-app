@@ -35,7 +35,7 @@ const AccountItem: React.FC<AccountItemProps> = ({ account }) => {
     .filter(t => t.type === 'payout' && t.my_account_id === account.id)
     .reduce((sum, t) => sum + t.amount, 0);
   const totalExpenses = state.transactions
-    .filter(t => (t.type === 'buy_account' || t.type === 'activation_fee' || t.type === 'reset_account') && t.my_account_id === account.id)
+    .filter(t => (t.type === 'buy_account' || t.type === 'activation_fee' || t.type === 'reset_account' || t.type === 'renew_subscription') && t.my_account_id === account.id)
     .reduce((sum, t) => sum + t.amount, 0);
   const accountResults = totalPayouts - totalExpenses
 

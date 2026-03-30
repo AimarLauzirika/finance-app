@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import AccountItem from './AccountItem';
 
-const AccountList: React.FC = () => {
+interface AccountListProps {
+  onFilteredAccountsChange?: (accountIds: string[]) => void;
+}
+
+const AccountList: React.FC<AccountListProps> = ({ onFilteredAccountsChange }) => {
   const { state } = useFinance();
   const [companyFilter, setCompanyFilter] = useState('');
   const [stateFilter, setStateFilter] = useState('');
@@ -11,23 +15,25 @@ const AccountList: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  const filteredAccounts = state.myAccounts
-    .filter(account => {
-      const accountDetails = state.accounts.find(a => a.id === account.account_id);
-      const company = accountDetails ? state.companies.find(c => c.id === accountDetails.company_id) : null;
+  const filteredAccounts = useMemo(() => {
+    return state.myAccounts
+      .filter(account => {
+        const accountDetails = state.accounts.find(a => a.id === account.account_id);
+        const company = accountDetails ? state.companies.find(c => c.id === accountDetails.company_id) : null;
 
-      const matchesCompany = !companyFilter || (company && company.short_name.toLowerCase().includes(companyFilter.toLowerCase()));
-      const matchesState = !stateFilter || account.state.toLowerCase().includes(stateFilter.toLowerCase());
-      const matchesStartDate = !startDate || new Date(account.date) >= new Date(startDate);
-      const matchesEndDate = !endDate || new Date(account.date) <= new Date(endDate);
+        const matchesCompany = !companyFilter || (company && company.short_name.toLowerCase().includes(companyFilter.toLowerCase()));
+        const matchesState = !stateFilter || account.state.toLowerCase().includes(stateFilter.toLowerCase());
+        const matchesStartDate = !startDate || new Date(account.date) >= new Date(startDate);
+        const matchesEndDate = !endDate || new Date(account.date) <= new Date(endDate);
 
-      return matchesCompany && matchesState && matchesStartDate && matchesEndDate;
-    })
-    .sort((a, b) => {
-      const dateA = new Date(a.date).getTime();
-      const dateB = new Date(b.date).getTime();
-      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-    });
+        return matchesCompany && matchesState && matchesStartDate && matchesEndDate;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+      });
+  }, [state.myAccounts, state.accounts, state.companies, companyFilter, stateFilter, startDate, endDate, sortOrder]);
 
   const uniqueCompanies = Array.from(new Set(
     state.myAccounts
@@ -41,11 +47,17 @@ const AccountList: React.FC = () => {
 
   const uniqueStates = Array.from(new Set(state.myAccounts.map(account => account.state)));
 
+  // Notify parent about filtered account IDs
+  useEffect(() => {
+    onFilteredAccountsChange?.(filteredAccounts.map(acc => acc.id));
+  }, [filteredAccounts, onFilteredAccountsChange]);
+
   return (
     <div className="bg-gray-900 p-6 rounded-lg shadow-md max-w-4xl mx-auto h-[calc(100vh-65px)] flex flex-col">
-      <h2 className="text-2xl text-gray-400 font-semibold flex-shrink-0">Mis Cuentas</h2>
-      <div className="mt-4 bg-gray-800 p-4 rounded flex-shrink-0">
-        <div className="flex gap-2 mb-4">
+      <h2 className="text-2xl text-gray-400 font-semibold">Mis Cuentas</h2>
+      <div className="mt-4 bg-gray-800 p-4 rounded flex gap-4">
+        <div className="">
+          <label className="block text-gray-300 text-sm mb-1">Orden</label>
           <button
             onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
             className="inline-flex items-center gap-2 rounded bg-gray-700 px-3 py-2 text-sm font-medium hover:bg-gray-600 text-gray-200"

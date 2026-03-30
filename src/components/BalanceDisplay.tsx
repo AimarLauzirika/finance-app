@@ -1,32 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Pencil } from 'lucide-react';
+import React, { useState } from 'react';
 import { useFinance } from '../hooks/useFinance';
 import { formatCurrency } from '../utils/formatters';
 import BalanceChart from './BalanceChart';
 
 const BalanceDisplay: React.FC = () => {
-  const { state, setInitialCapital } = useFinance();
-  const [newCapital, setNewCapital] = useState(state.initialCapital.toString());
-  const [newCapitalDate, setNewCapitalDate] = useState(state.initialCapitalDate);
-  const [initialCapitalFormVisible, setInitialCapitalFormVisible] = useState(false);
+  const { state } = useFinance();
 
   const [selectedAccount, setSelectedAccount] = useState<number | ''>('');
   const [selectedCompany, setSelectedCompany] = useState<number | ''>('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-
-  // Sync inputs with current state
-  useEffect(() => {
-    setNewCapital(state.initialCapital.toString());
-    setNewCapitalDate(state.initialCapitalDate);
-  }, [state.initialCapital, state.initialCapitalDate]);
-
-  const handleSetInitialCapital = () => {
-    const capital = parseFloat(newCapital);
-    if (!isNaN(capital)) {
-      setInitialCapital(capital, newCapitalDate);
-    }
-  };
 
   const myAccountById = React.useMemo(() => {
     return state.myAccounts.reduce<Record<string, typeof state.myAccounts[0]>>((acc, my) => {
@@ -70,18 +53,11 @@ const BalanceDisplay: React.FC = () => {
     return true;
   });
 
-  const totalIncome = filteredTransactions
-    .filter(t => t.type === 'payout')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalExpense = filteredTransactions
-    .filter(t => t.type !== 'payout' && t.type !== 'initial')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const filteredInitialCapital = filteredTransactions
-    .filter(t => t.type === 'initial')
-    .reduce((sum, t) => sum + t.amount, 0) || state.initialCapital;
-  const filteredBalance = filteredInitialCapital + totalIncome - totalExpense;
-  const filteredProfit = totalIncome - totalExpense;
-  const roi = filteredInitialCapital > 0 ? (filteredProfit / filteredInitialCapital) * 100 : 0;
+  // Bank account data (using latest record)
+  const latestBankAccount = state.bankAccounts.length > 0 ? state.bankAccounts[0] : null;
+  const wiseUSD = latestBankAccount ? latestBankAccount.wise_usd : 0;
+  const riseUSD = latestBankAccount ? latestBankAccount.rise_usd : 0;
+  const cajaTotal = latestBankAccount ? (wiseUSD + riseUSD - 20) : 0;
 
   return (
     <div className="bg-gray-900 p-6 rounded-lg shadow-md mb-6 max-w-xl mx-auto">
@@ -89,68 +65,38 @@ const BalanceDisplay: React.FC = () => {
       <div className='flex items-center justify-center gap-24'>
         <div className="grid grid-cols-2 gap-6">
           <div className="text-center col-span-2">
-            <p className="text-sm text-gray-400">Capital Inicial</p>
-            <p className="text-xl font-bold text-gray-600">{formatCurrency(filteredInitialCapital)}</p>
+            <p className="text-sm text-gray-400">Caja Total</p>
+            <p className="text-xl font-bold text-gray-600">{formatCurrency(cajaTotal)}</p>
           </div>
           <div className="text-center">
-            <p className="text-sm text-gray-400">Total Ingresos</p>
-            <p className="text-xl font-bold text-gray-600">{formatCurrency(totalIncome)}</p>
+            <p className="text-sm text-gray-400">WISE</p>
+            <p className="text-xl font-bold text-gray-600">{formatCurrency(wiseUSD)}</p>
           </div>
           <div className="text-center">
-            <p className="text-sm text-gray-400">Total Gastos</p>
-            <p className="text-xl font-bold text-gray-600">{formatCurrency(totalExpense)}</p>
+            <p className="text-sm text-gray-400">RISE</p>
+            <p className="text-xl font-bold text-gray-600">{formatCurrency(riseUSD)}</p>
           </div>
         </div>
         <div className="grid grid-rows-3 gap-4">
           <div className="text-center">
-            <p className="text-sm text-gray-400">Balance Actual</p>
+            <p className="text-sm text-gray-400">Resultados</p>
             <p className='text-xl font-bold text-blue-600'>
-              {formatCurrency(filteredBalance)}
+              {formatCurrency(cajaTotal)}
             </p>
           </div>
           <div className="text-center">
             <p className="text-sm text-gray-400">Beneficio</p>
-            <p className={`text-xl font-bold ${filteredProfit > 0 ? 'text-green-600' : filteredProfit === 0 ? 'text-gray-400' : 'text-red-700'}`}>{formatCurrency(filteredProfit)}</p>
+            <p className={`text-xl font-bold ${(wiseUSD - riseUSD) > 0 ? 'text-green-600' : (wiseUSD - riseUSD) === 0 ? 'text-gray-400' : 'text-red-700'}`}>{formatCurrency(wiseUSD - riseUSD)}</p>
           </div>
           <div className="text-center">
             <p className="text-sm text-gray-400">ROI</p>
-            <p className={`text-xl font-bold ${roi > 0 ? 'text-green-600' : roi === 0 ? 'text-gray-400' : 'text-red-700'}`}>{roi.toFixed(2)}%</p>
-          </div>
-        </div>
-      </div>
-      <div className="mt-8">
-        <div className='mx-auto'>
-          <label className=" text-gray-600 text-sm select-none items-center flex font-medium hover:cursor-pointer hover:text-blue-500 hover:opacity-75" onClick={() => {setInitialCapitalFormVisible(!initialCapitalFormVisible)}}>
-            Modificar Capital Inicial <span>{<Pencil className="inline h-4 ml-1" />}</span>
-          </label>
-          <div className={`justify-center gap-2 mt-6 ${initialCapitalFormVisible ? 'flex' : 'hidden'}`}>
-            <input
-              type="number"
-              value={newCapital}
-              onChange={(e) => setNewCapital(e.target.value)}
-              className="bg-gray-800 placeholder:text-gray-600 text-gray-200 px-2 rounded focus:outline-none focus:bg-gray-700 focus:placeholder:text-gray-500"
-              placeholder="Capital Inicial"
-              />
-            <input
-              type="date"
-              value={newCapitalDate}
-              onChange={(e) => setNewCapitalDate(e.target.value)}
-              className="bg-gray-800 placeholder:text-gray-600 text-gray-200 px-2 rounded focus:outline-none focus:bg-gray-700 focus:placeholder:text-gray-500"
-              placeholder="Capital Inicial"
-              />
-            <button
-              onClick={() => {handleSetInitialCapital()}}
-              className="px-4 py-1 bg-gray-800 border-gray-700 text-blue-100 rounded hover:bg-gray-700"
-              >
-              Actualizar
-            </button>
+            <p className={`text-xl font-bold ${(wiseUSD - riseUSD) > 0 ? 'text-green-600' : (wiseUSD - riseUSD) === 0 ? 'text-gray-400' : 'text-red-700'}`}>{wiseUSD > 0 ? (((wiseUSD - riseUSD) / riseUSD) * 100).toFixed(2) : '0.00'}%</p>
           </div>
         </div>
       </div>
 
       <div className="mt-6 bg-gray-800 p-4 rounded">
         <h3 className="text-sm text-gray-400 mb-3">Filtros del gráfico</h3>
-        {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> */}
         <div className="">
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div>

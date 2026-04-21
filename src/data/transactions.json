@@ -1,7 +1,0 @@
-[
-  {"type": "initial", "id": "00000001", "amount": 2000, "description": "Capital Inicial", "date": "2026-01-01"},
-  {"type": "expense", "id": "00000002", "amount": 49, "description": "AF1 Eval", "date": "2026-02-01"},
-  {"type": "expense", "id": "00000003", "amount": 49, "description": "AF2 Eval", "date": "2026-02-02"},
-  {"type": "expense", "id": "00000004", "amount": 49, "description": "AF2 Activación", "date": "2026-02-05"},
-  {"type": "income", "id": "00000005", "amount": 175, "description": "AF2 Retiro", "date": "2026-02-20"}
-]

@@ -13,9 +13,35 @@ const ActiveAccounts: React.FC = () => {
     closeAccount,
   } = useFinance();
 
-  const activeMyAccounts = useMemo(() => state.myAccounts.filter(a => a.state === 'active'), [state.myAccounts]);
-  // sort activeMyAccounts by ref
-  activeMyAccounts.sort((a, b) => a.ref.localeCompare(b.ref));
+  const activeMyAccounts = useMemo(() => {
+    const filtered = state.myAccounts.filter(a => a.state === 'active');
+    
+    // Sort by: stage -> company -> ref
+    return filtered.sort((a, b) => {
+      // Get stage for both accounts
+      const stageA = state.activeAccounts.find(aa => aa.ref === a.ref)?.stage ?? '';
+      const stageB = state.activeAccounts.find(aa => aa.ref === b.ref)?.stage ?? '';
+      
+      // Get company IDs for both accounts
+      const accountA = state.accounts.find(acc => acc.id === a.account_id);
+      const accountB = state.accounts.find(acc => acc.id === b.account_id);
+      const companyIdA = accountA?.company_id ?? 0;
+      const companyIdB = accountB?.company_id ?? 0;
+      
+      // First sort by stage (reversed)
+      if (stageA !== stageB) {
+        return stageB.localeCompare(stageA);
+      }
+      
+      // Then sort by company
+      if (companyIdA !== companyIdB) {
+        return companyIdA - companyIdB;
+      }
+      
+      // Finally sort by reference
+      return a.ref.localeCompare(b.ref);
+    });
+  }, [state.myAccounts, state.activeAccounts, state.accounts]);
 
   const activeAccountMap = useMemo(() => {
     const map: Record<string, ActiveAccount> = {};

@@ -9,13 +9,14 @@ import AccountStatsHeader from './components/AccountStatsHeader';
 import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
 import ActiveAccounts from './components/ActiveAccounts';
+import Calendar from './components/Calendar';
 import Login from './components/Login';
 import { Sidebar } from './components/Sidebar';
 
 function App() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState<'balance' | 'accounts' | 'transactions' | 'active'>('balance');
+  const [currentView, setCurrentView] = useState<'balance' | 'accounts' | 'transactions' | 'active' | 'calendar'>('balance');
   const [filteredAccountIds, setFilteredAccountIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -82,6 +83,8 @@ function App() {
         );
       case 'active':
         return <ActiveAccounts />;
+      case 'calendar':
+        return <Calendar />;
       default:
         return <BalanceDisplay />;
     }

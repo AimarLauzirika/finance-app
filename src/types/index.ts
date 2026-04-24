@@ -13,6 +13,9 @@ export interface Company {
   id: number;
   short_name: string;
   long_name: string;
+  close_time?: string;
+  auto_close?: boolean;
+  ddd_soft_breach?: boolean;
 }
 
 export interface AccountTable {
@@ -21,6 +24,9 @@ export interface AccountTable {
   company_id: number;
   f_min_profit_days?: number;
   a_profit_day_usd?: number;
+  news_minutes?: number;
+  e_ddd_usd?: number;
+  f_ddd_usd?: number;
 }
 
 export interface MyAccount {
@@ -39,9 +45,22 @@ export interface ActiveAccount {
   last_trade: string; // YYYY-MM-DD
   withdrawal_date: string; // YYYY-MM-DD
   balance: number;
+  criteria?: string;
+  current_mdd?: number;
+  target_account?: number;
+  profit_days?: number;
+}
+
+export interface FundResult {
+  id?: number;
+  account_id: number;
+  criteria: string;
+  tp: number;
+  sl: number;
   current_mdd: number;
   target_account: number;
   profit_days?: number;
+  cut_profit?: boolean;
 }
 
 export interface BankAccount {
@@ -58,6 +77,7 @@ export interface FinanceState {
   companies: Company[];
   activeAccounts: ActiveAccount[];
   bankAccounts: BankAccount[];
+  fundResults: FundResult[];
 }
 
 export type FinanceAction =

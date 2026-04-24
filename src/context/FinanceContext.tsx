@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { FinanceState, Transaction, MyAccount, AccountTable, Company, ActiveAccount, BankAccount } from '../types';
+import type { FinanceState, Transaction, MyAccount, AccountTable, Company, ActiveAccount, BankAccount, FundResult } from '../types';
 import { FinanceContext } from './FinanceContextObject';
 import { supabase } from '../lib/supabase';
 
@@ -12,6 +12,7 @@ const initialState: FinanceState = {
   companies: [],
   activeAccounts: [],
   bankAccounts: [],
+  fundResults: [],
 };
 
 // Load initial data from Supabase
@@ -22,8 +23,9 @@ const getInitialData = async (): Promise<{
   companies: Company[];
   activeAccounts: ActiveAccount[];
   bankAccounts: BankAccount[];
+  fundResults: FundResult[];
 }> => {
-  const [transactionsRes, myAccountsRes, accountsRes, companiesRes, activeAccountsRes, bankAccountsRes] = await Promise.all([
+  const [transactionsRes, myAccountsRes, accountsRes, companiesRes, activeAccountsRes, bankAccountsRes, fundResultsRes] = await Promise.all([
     supabase
       .from('transactions')
       .select('*')
@@ -45,6 +47,9 @@ const getInitialData = async (): Promise<{
       .from('bank_accounts')
       .select('*')
       .order('date', { ascending: false }),
+    supabase
+      .from('fund_results')
+      .select('*'),
   ]);
 
   if (transactionsRes.error) {
@@ -87,6 +92,7 @@ const getInitialData = async (): Promise<{
     current_mdd: a.current_mdd,
     target_account: a.target_account,
     profit_days: a.profit_days,
+    criteria: a.criteria,
   }));
 
   const accounts = accountsRes.data || [];
@@ -98,7 +104,16 @@ const getInitialData = async (): Promise<{
     rise_usd: b.rise_usd,
   }));
 
-  return { transactions, myAccounts, accounts, companies, activeAccounts, bankAccounts };
+  const fundResults = (fundResultsRes.data || []).map((f: any) => ({
+    id: f.id,
+    account_id: f.account_id,
+    criteria: f.criteria,
+    tp: f.tp,
+    sl: f.sl,
+    cut_profit: f.cut_profit,
+  }));
+
+  return { transactions, myAccounts, accounts, companies, activeAccounts, bankAccounts, fundResults };
 };
 
 
@@ -108,7 +123,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   useEffect(() => {
     const loadData = async () => {
-      const { transactions, myAccounts, accounts, companies, activeAccounts, bankAccounts } = await getInitialData();
+      const { transactions, myAccounts, accounts, companies, activeAccounts, bankAccounts, fundResults } = await getInitialData();
       setState({
         transactions,
         myAccounts,
@@ -116,6 +131,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         companies,
         activeAccounts,
         bankAccounts,
+        fundResults,
       });
     };
     loadData();

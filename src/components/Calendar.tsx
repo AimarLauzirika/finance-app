@@ -68,6 +68,35 @@ const Calendar: React.FC = () => {
     return daysInMonth > 0 ? monthResult / daysInMonth : 0;
   }, [monthResult, monthStart, monthEnd]);
 
+  // Calculate monthly results by company
+  const monthlyResultsByCompany = useMemo(() => {
+    const results: Record<string, number> = {};
+    const currentMonth = getMonth(currentDate);
+    const currentYear = getYear(currentDate);
+
+    state.transactions.forEach(tx => {
+      const txYear = getYear(new Date(tx.date));
+      const txMonth = getMonth(new Date(tx.date));
+      
+      if (txMonth === currentMonth && txYear === currentYear) {
+        const company = state.companies.find(c => c.id === tx.company_id);
+        const companyName = company?.name ?? 'Sin compañía';
+        
+        const amount = (tx.type === 'payout' || tx.type === 'dividends') ? tx.amount :
+                      (tx.type === 'buy_account' || tx.type === 'reset_account' || tx.type === 'activation_fee' || tx.type === 'renew_subscription' || tx.type === 'VPS' || tx.type === 'income_tax') ? -tx.amount : 0;
+        
+        if (!results[companyName]) {
+          results[companyName] = 0;
+        }
+        results[companyName] += amount;
+      }
+    });
+
+    return Object.entries(results)
+      .map(([company, total]) => ({ company, total }))
+      .sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
+  }, [currentDate, state.transactions, state.companies]);
+
   // Calculate monthly results for current and previous year
   const monthlyData = useMemo(() => {
     const currentYear = currentDate.getFullYear();
@@ -249,6 +278,23 @@ const Calendar: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Monthly Results by Company (only in month view) */}
+      {viewMode === 'month' && monthlyResultsByCompany.length > 0 && (
+        <div className="mb-6 bg-gray-800 p-4 rounded-lg">
+          <h3 className="text-lg text-gray-300 font-semibold mb-4">Resultados por Compañía</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {monthlyResultsByCompany.map((item, idx) => (
+              <div key={idx} className="bg-gray-700 p-3 rounded-lg">
+                <p className="text-xs text-gray-400 mb-2 truncate">{item.company}</p>
+                <p className={`font-bold text-sm ${getColorClass(item.total)}`}>
+                  {formatCurrency(item.total)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Calendar Grid */}
       <div className="flex-1 overflow-auto">

@@ -19,6 +19,8 @@ export interface AccountTable {
   id: number;
   name: string;
   company_id: number;
+  f_min_profit_days?: number;
+  a_profit_day_usd?: number;
 }
 
 export interface MyAccount {
@@ -39,6 +41,7 @@ export interface ActiveAccount {
   balance: number;
   current_mdd: number;
   target_account: number;
+  profit_days?: number;
 }
 
 export interface BankAccount {

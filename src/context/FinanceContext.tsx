@@ -86,6 +86,7 @@ const getInitialData = async (): Promise<{
     balance: a.balance,
     current_mdd: a.current_mdd,
     target_account: a.target_account,
+    profit_days: a.profit_days,
   }));
 
   const accounts = accountsRes.data || [];
@@ -282,6 +283,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         balance: data.balance,
         current_mdd: data.current_mdd,
         target_account: data.target_account,
+        profit_days: data.profit_days,
       }],
     }));
   };

@@ -127,6 +127,7 @@ const ActiveAccounts: React.FC = () => {
                 <th className="px-4 py-3 text-right text-gray-300 font-semibold">MDD</th>
                 <th className="px-4 py-3 text-right text-gray-300 font-semibold">Balance</th>
                 <th className="px-4 py-3 text-right text-gray-300 font-semibold">Target</th>
+                <th className="px-4 py-3 text-center text-gray-300 font-semibold">Días Mín.</th>
                 <th className="px-4 py-3 text-center text-gray-300 font-semibold">Progreso</th>
                 <th className="px-4 py-3 text-center text-gray-300 font-semibold">Acciones</th>
               </tr>
@@ -279,6 +280,28 @@ const ActiveAccounts: React.FC = () => {
                         />
                       ) : (
                         <span className="text-gray-300">{formatCurrency(activeAccount.target_account)}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {account && account.f_min_profit_days ? (
+                        editingRef === myAccount.ref ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <input
+                              type="number"
+                              step="1"
+                              value={editValues.profit_days ?? activeAccount.profit_days ?? 0}
+                              onChange={(e) => setEditValues(prev => ({ ...prev, profit_days: parseInt(e.target.value) || 0 }))}
+                              className="w-16 rounded bg-gray-900 px-2 py-1 text-gray-200 text-center"
+                            />
+                            <span className="text-gray-300">/ {account.f_min_profit_days}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-300">
+                            {activeAccount.profit_days ?? 0} / {account.f_min_profit_days} de ${Math.round(account.a_profit_day_usd ?? 0)}
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-gray-500">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3">

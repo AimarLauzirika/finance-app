@@ -163,8 +163,17 @@ const ActiveAccounts: React.FC = () => {
       stage = '';
     }
 
+    // Check if minimum days are met
+    const minDaysMet = (activeAccount.profit_days ?? 0) >= (account?.f_min_profit_days ?? 0);
+
+    // Determine progress bar color based on balance and minimum days
+    let progressBarColor = 'bg-gray-600'; // Default: balance < target
+    if (progress >= 1) {
+      progressBarColor = minDaysMet ? 'bg-green-500' : 'bg-blue-500';
+    }
+
     return (
-      <tr key={myAccount.id} className={`border-b border-gray-600 ${isToday(activeAccount.last_trade) || progress >= 1 ? 'bg-gray-700' : 'bg-transparent'} hover:bg-gray-800`}>
+      <tr key={myAccount.id} className={`border-b border-gray-600 ${isToday(activeAccount.last_trade) || (progress >= 1 && minDaysMet) ? 'bg-gray-700' : 'bg-transparent'} hover:bg-gray-800`}>
         <td className="px-4 py-3">
           <div className="flex items-center gap-3">
             {account && account.company_id && (
@@ -288,7 +297,7 @@ const ActiveAccounts: React.FC = () => {
         <td className="px-4 py-3">
           <div className="w-full bg-gray-800 rounded-full h-2">
             <div
-              className={`h-full rounded-full ${progress < 1 ? 'bg-blue-500' : 'bg-green-500'}`}
+              className={`h-full rounded-full ${progressBarColor}`}
               style={{ width: `${Math.min(progress * 100, 100)}%` }}
             />
           </div>
@@ -353,8 +362,8 @@ const ActiveAccounts: React.FC = () => {
       ? (activeAccount.balance - (activeAccount.current_mdd ?? 0)) / (activeAccount.target_account - (activeAccount.current_mdd ?? 0))
       : 0;
 
-    // Get fund result using myAccount.id for correct mapping
-    const fundKey = `${myAccount.id}-${activeAccount?.criteria}`;
+    // Get fund result: fund_results.account_id = accounts.id and fund_results.criteria = my_active_accounts.criteria
+    const fundKey = `${account?.id}-${activeAccount?.criteria}`;
     const fundResult = fundResultsMap[fundKey];
 
     if (!activeAccount) {
@@ -408,8 +417,17 @@ const ActiveAccounts: React.FC = () => {
     const autoClose = company?.auto_close !== false;
     const dddSoftBreach = company?.ddd_soft_breach === true;
 
+    // Check if minimum days are met
+    const minDaysMet = (activeAccount.profit_days ?? 0) >= (account?.f_min_profit_days ?? 0);
+
+    // Determine progress bar color based on balance and minimum days
+    let progressBarColor = 'bg-gray-600'; // Default: balance < target
+    if (progress >= 1) {
+      progressBarColor = minDaysMet ? 'bg-green-500' : 'bg-blue-500';
+    }
+
     return (
-      <tr key={myAccount.id} className={`border-b border-gray-600 ${isToday(activeAccount.last_trade) || progress >= 1 ? 'bg-gray-700' : 'bg-transparent'} hover:bg-gray-800`}>
+      <tr key={myAccount.id} className={`border-b border-gray-600 ${isToday(activeAccount.last_trade) || (progress >= 1 && minDaysMet) ? 'bg-gray-700' : 'bg-transparent'} hover:bg-gray-800`}>
         <td className="px-4 py-3">
           <div className="flex items-center gap-3">
             {account && account.company_id && (
@@ -470,7 +488,7 @@ const ActiveAccounts: React.FC = () => {
         <td className="px-4 py-3">
           <div className="w-full bg-gray-800 rounded-full h-2">
             <div
-              className={`h-full rounded-full ${progress < 1 ? 'bg-blue-500' : 'bg-green-500'}`}
+              className={`h-full rounded-full ${progressBarColor}`}
               style={{ width: `${Math.min(progress * 100, 100)}%` }}
             />
           </div>

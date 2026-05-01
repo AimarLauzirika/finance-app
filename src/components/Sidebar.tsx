@@ -1,9 +1,9 @@
 import React from 'react';
-import { Home, CreditCard, Receipt, Activity, Calendar, LogOut } from 'lucide-react';
+import { Home, CreditCard, Receipt, Activity, Calendar, LogOut, TrendingUp } from 'lucide-react';
 
 interface SidebarProps {
-  currentView: 'balance' | 'accounts' | 'transactions' | 'active' | 'calendar';
-  onViewChange: (view: 'balance' | 'accounts' | 'transactions' | 'active' | 'calendar') => void;
+  currentView: 'balance' | 'accounts' | 'transactions' | 'active' | 'calendar' | 'backtests';
+  onViewChange: (view: 'balance' | 'accounts' | 'transactions' | 'active' | 'calendar' | 'backtests') => void;
   onLogout: () => void;
 }
 
@@ -68,6 +68,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, onL
             >
               <Calendar size={20} />
               <span>Calendar</span>
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={() => onViewChange('backtests')}
+              className={`w-full text-left px-4 py-2 rounded flex items-center space-x-2 ${
+                currentView === 'backtests' ? 'bg-blue-600' : 'hover:bg-gray-700'
+              }`}
+            >
+              <TrendingUp size={20} />
+              <span>Backtests</span>
             </button>
           </li>
         </ul>

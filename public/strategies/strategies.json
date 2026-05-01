@@ -1,0 +1,16 @@
+{
+  "strategies": [
+    "E2tFund50MgcBBBoLong",
+    "E2tFund50MgcCuboLong",
+    "E2tFund50MgcCuBoShort",
+    "E2tFund50MgcFiBo",
+    "E2tFund50MgcFriday",
+    "E2tFund50MgcGannBoLong",
+    "E2tFund50MgcMondayShort",
+    "E2tFund50MgcPbGLong",
+    "E2tFund50MgcPdReLong",
+    "E2tFund50MgcPdReShort",
+    "E2tFund50MgcR3BoLong",
+    "E2tFund50MgcR3BoShort"
+  ]
+}

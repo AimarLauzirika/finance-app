@@ -12,11 +12,12 @@ import ActiveAccounts from './components/ActiveAccounts';
 import Calendar from './components/Calendar';
 import Login from './components/Login';
 import { Sidebar } from './components/Sidebar';
+import { BacktestPage } from './components/BacktestPage';
 
 function App() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState<'balance' | 'accounts' | 'transactions' | 'active' | 'calendar'>('balance');
+  const [currentView, setCurrentView] = useState<'balance' | 'accounts' | 'transactions' | 'active' | 'calendar' | 'backtests'>('balance');
   const [filteredAccountIds, setFilteredAccountIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -85,6 +86,8 @@ function App() {
         return <ActiveAccounts />;
       case 'calendar':
         return <Calendar />;
+      case 'backtests':
+        return <BacktestPage />;
       default:
         return <BalanceDisplay />;
     }

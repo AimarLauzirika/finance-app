@@ -99,3 +99,39 @@ export type FinanceContextValue = {
   transactionFormVisible: boolean;
   transactionListVisible: boolean;
 };
+
+// Backtest Types
+export interface Trade {
+  trade: number;
+  instrument: string;
+  strategy: string;
+  version: string;
+  qty: number;
+  direction: string;
+  entry_time: string;
+  entry_price: number;
+  exit_time: string;
+  exit_price: number;
+  profit: number;
+  commission: number;
+  mae: number;
+  mfe: number;
+}
+
+export interface PeriodMetrics {
+  profit_factor: number;
+  total_profit: number;
+  num_trades: number;
+}
+
+export interface StrategyVariantResults {
+  variant: string;
+  in_sample_1: PeriodMetrics;
+  in_sample_2: PeriodMetrics;
+  out_of_sample: PeriodMetrics;
+}
+
+export interface StrategyBacktest {
+  name: string;
+  variants: StrategyVariantResults[];
+}

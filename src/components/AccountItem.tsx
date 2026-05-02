@@ -51,8 +51,14 @@ const AccountItem: React.FC<AccountItemProps> = ({ account }) => {
     setIsEditing(false);
   };
 
+  const isActive = account.state === 'active';
+
   return (
-    <div className="bg-gray-800 p-4 rounded-lg">
+    <div className={`p-4 bg-gray-800 rounded-lg transition-all ${
+      isActive
+        ? ' border-l-4 border-l-green-500'
+        : ''
+    }`}>
       <div className="flex items-center justify-between">
         <div>
           {isEditing ? (
@@ -98,10 +104,21 @@ const AccountItem: React.FC<AccountItemProps> = ({ account }) => {
             </div>
           ) : (
             <>
-              <p className="text-gray-200 font-medium">{accountName}</p>
-              <p className="text-gray-500 text-sm">{format(new Date(account.date), 'dd/MM/yyyy')}</p>
-              <p className="text-gray-400 text-sm">Ref: {account.ref}</p>
-              <p className="text-gray-400 text-sm">Estado: {account.state}</p>
+              <div className="flex items-center gap-2">
+                <p className={`font-medium ${
+                  isActive ? 'text-gray-100' : 'text-gray-400'
+                }`}>{accountName}</p>
+                {isActive && <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>}
+              </div>
+              <p className={`text-sm ${
+                isActive ? 'text-gray-400' : 'text-gray-600'
+              }`}>{format(new Date(account.date), 'dd/MM/yyyy')}</p>
+              <p className={`text-sm ${
+                isActive ? 'text-gray-400' : 'text-gray-600'
+              }`}>Ref: {account.ref}</p>
+              <p className={`text-sm ${
+                isActive ? 'text-green-400 font-medium' : 'text-gray-500'
+              }`}>Estado: {account.state}</p>
               {!hasBuyTransaction && (
                 <p className="text-red-500 text-sm">⚠️ Sin transacción de compra</p>
               )}

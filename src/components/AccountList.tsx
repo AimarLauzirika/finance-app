@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Eye, EyeOff } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import AccountItem from './AccountItem';
 
@@ -14,6 +14,7 @@ const AccountList: React.FC<AccountListProps> = ({ onFilteredAccountsChange }) =
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [showClosed, setShowClosed] = useState(true);
 
   const filteredAccounts = useMemo(() => {
     return state.myAccounts
@@ -25,15 +26,16 @@ const AccountList: React.FC<AccountListProps> = ({ onFilteredAccountsChange }) =
         const matchesState = !stateFilter || account.state.toLowerCase().includes(stateFilter.toLowerCase());
         const matchesStartDate = !startDate || new Date(account.date) >= new Date(startDate);
         const matchesEndDate = !endDate || new Date(account.date) <= new Date(endDate);
+        const matchesClosed = showClosed || account.state !== 'closed';
 
-        return matchesCompany && matchesState && matchesStartDate && matchesEndDate;
+        return matchesCompany && matchesState && matchesStartDate && matchesEndDate && matchesClosed;
       })
       .sort((a, b) => {
         const dateA = new Date(a.date).getTime();
         const dateB = new Date(b.date).getTime();
         return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
       });
-  }, [state.myAccounts, state.accounts, state.companies, companyFilter, stateFilter, startDate, endDate, sortOrder]);
+  }, [state.myAccounts, state.accounts, state.companies, companyFilter, stateFilter, startDate, endDate, sortOrder, showClosed]);
 
   const uniqueCompanies = Array.from(new Set(
     state.myAccounts
@@ -54,8 +56,8 @@ const AccountList: React.FC<AccountListProps> = ({ onFilteredAccountsChange }) =
 
   return (
     <div className="bg-gray-900 p-6 rounded-lg shadow-md max-w-4xl mx-auto h-[calc(100vh-65px)] flex flex-col">
-      <h2 className="text-2xl text-gray-400 font-semibold">Mis Cuentas</h2>
-      <div className="mt-4 bg-gray-800 p-4 rounded flex gap-4">
+      <h2 className="text-2xl text-gray-100 font-semibold">Mis Cuentas</h2>
+      <div className="mt-4 bg-gray-800 p-4 rounded flex gap-4 flex-wrap">
         <div className="">
           <label className="block text-gray-300 text-sm mb-1">Orden</label>
           <button
@@ -73,6 +75,22 @@ const AccountList: React.FC<AccountListProps> = ({ onFilteredAccountsChange }) =
                 <span>Viejas a Nuevas</span>
               </>
             )}
+          </button>
+        </div>
+        <div className="">
+          <label className="block text-gray-300 text-sm mb-1">Cuentas</label>
+          <button
+            onClick={() => setShowClosed(!showClosed)}
+            className={`inline-flex items-center gap-2 rounded px-3 py-2 text-sm font-medium transition-colors ${
+              !showClosed
+                ? 'bg-amber-700 hover:bg-amber-600 text-white'
+                : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+            }`}
+            title={showClosed ? 'Ocultar cuentas cerradas' : 'Mostrar cuentas cerradas'}
+          >
+            {showClosed ? <Eye size={16} /> : <EyeOff size={16} />}
+            <span className="hidden sm:inline">{showClosed ? 'Mostrar cerradas' : 'Ocultar cerradas'}</span>
+            <span className="sm:hidden text-xs">{showClosed ? 'Ver' : 'Ocultar'}</span>
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

@@ -57,41 +57,68 @@ const BalanceDisplay: React.FC = () => {
   const latestBankAccount = state.bankAccounts.length > 0 ? state.bankAccounts[0] : null;
   const wiseUSD = latestBankAccount ? latestBankAccount.wise_usd : 0;
   const riseUSD = latestBankAccount ? latestBankAccount.rise_usd : 0;
-  const cajaTotal = latestBankAccount ? (wiseUSD + riseUSD - 20) : 0;
+  const planeUSD = latestBankAccount ? (latestBankAccount.plane_usd ?? 0) : 0;
+  const bankAccountDate = latestBankAccount ? latestBankAccount.date : '';
+
+  // Calculate transactions after bank account date
+  const transactionsAfterBankDate = latestBankAccount
+    ? state.transactions.filter(tx => new Date(tx.date) > new Date(bankAccountDate))
+    : [];
+
+  // Calculate transaction results (income - expenses)
+  const transactionResults = transactionsAfterBankDate.reduce((sum, tx) => {
+    if (tx.type === 'payout' || tx.type === 'dividends') {
+      return sum + tx.amount;
+    } else if (tx.type === 'buy_account' || tx.type === 'reset_account' || tx.type === 'activation_fee' || tx.type === 'renew_subscription' || tx.type === 'VPS' || tx.type === 'income_tax' || tx.type === 'data') {
+      return sum - tx.amount;
+    }
+    return sum;
+  }, 0);
+
+  // Caja Actual = sum of three accounts + transaction results
+  const cajaActual = latestBankAccount ? (wiseUSD + riseUSD + planeUSD + transactionResults) : 0;
 
   return (
     <div className="bg-gray-900 p-6 rounded-lg shadow-md mb-6 max-w-xl mx-auto">
       <h2 className="text-2xl text-gray-400 font-semibold mb-6">Balance</h2>
-      <div className='flex items-center justify-center gap-24'>
-        <div className="grid grid-cols-2 gap-6">
-          <div className="text-center col-span-2">
-            <p className="text-sm text-gray-400">Caja Total</p>
-            <p className="text-xl font-bold text-gray-600">{formatCurrency(cajaTotal)}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-gray-400">WISE</p>
-            <p className="text-xl font-bold text-gray-600">{formatCurrency(wiseUSD)}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-gray-400">RISE</p>
-            <p className="text-xl font-bold text-gray-600">{formatCurrency(riseUSD)}</p>
-          </div>
+      <div className='flex flex-col items-center justify-center gap-6'>
+        <div className="text-center">
+          <p className="text-sm text-gray-400">Caja Actual</p>
+          <p className="text-4xl font-bold text-blue-600">{formatCurrency(cajaActual)}</p>
         </div>
-        <div className="grid grid-rows-3 gap-4">
-          <div className="text-center">
-            <p className="text-sm text-gray-400">Resultados</p>
-            <p className='text-xl font-bold text-blue-600'>
-              {formatCurrency(cajaTotal)}
-            </p>
+        <div>
+          <div className="grid grid-cols-3 gap-6 mb-2">
+            <div className="text-center">
+              <p className="text-sm text-gray-400">WISE</p>
+              <p className="text-xl font-bold text-gray-600">{formatCurrency(wiseUSD)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-400">RISE</p>
+              <p className="text-xl font-bold text-gray-600">{formatCurrency(riseUSD)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-400">PLANE</p>
+              <p className="text-xl font-bold text-gray-600">{formatCurrency(planeUSD)}</p>
+            </div>
           </div>
-          <div className="text-center">
-            <p className="text-sm text-gray-400">Beneficio</p>
-            <p className={`text-xl font-bold ${(wiseUSD - riseUSD) > 0 ? 'text-green-600' : (wiseUSD - riseUSD) === 0 ? 'text-gray-400' : 'text-red-700'}`}>{formatCurrency(wiseUSD - riseUSD)}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-gray-400">ROI</p>
-            <p className={`text-xl font-bold ${(wiseUSD - riseUSD) > 0 ? 'text-green-600' : (wiseUSD - riseUSD) === 0 ? 'text-gray-400' : 'text-red-700'}`}>{wiseUSD > 0 ? (((wiseUSD - riseUSD) / riseUSD) * 100).toFixed(2) : '0.00'}%</p>
-          </div>
+          {bankAccountDate && <p className="text-xs text-gray-500 text-center">Registrado: {bankAccountDate}</p>}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 mt-6">
+        <div className="text-center">
+          <p className="text-sm text-gray-400">Resultados</p>
+          <p className='text-xl font-bold text-blue-600'>
+            {formatCurrency(transactionResults)}
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm text-gray-400">Beneficio</p>
+          <p className={`text-xl font-bold ${(wiseUSD - riseUSD) > 0 ? 'text-green-600' : (wiseUSD - riseUSD) === 0 ? 'text-gray-400' : 'text-red-700'}`}>{formatCurrency(wiseUSD - riseUSD)}</p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm text-gray-400">ROI</p>
+          <p className={`text-xl font-bold ${(wiseUSD - riseUSD) > 0 ? 'text-green-600' : (wiseUSD - riseUSD) === 0 ? 'text-gray-400' : 'text-red-700'}`}>{wiseUSD > 0 ? (((wiseUSD - riseUSD) / riseUSD) * 100).toFixed(2) : '0.00'}%</p>
         </div>
       </div>
 

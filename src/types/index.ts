@@ -68,6 +68,7 @@ export interface BankAccount {
   date: string; // YYYY-MM-DD
   wise_usd: number;
   rise_usd: number;
+  plane_usd?: number;
 }
 
 export interface FinanceState {

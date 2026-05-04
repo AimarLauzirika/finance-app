@@ -102,6 +102,7 @@ const getInitialData = async (): Promise<{
     date: b.date,
     wise_usd: b.wise_usd,
     rise_usd: b.rise_usd,
+    plane_usd: b.plane_usd,
   }));
 
   const fundResults = (fundResultsRes.data || []).map((f: any) => ({

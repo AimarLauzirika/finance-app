@@ -104,7 +104,7 @@ const TransactionForm: React.FC<{ accountId?: string; onClose?: () => void }> = 
                       ))}
                   {accountId &&
                     Object.entries(TRANSACTION_TYPES)
-                      .filter(([key]) => key === 'payout' || key === 'buy_account' || key === 'reset_account' || key === 'activation_fee' || key === 'renew_subscription')
+                      .filter(([key]) => key === 'payout' || key === 'buy_account' || key === 'reset_account' || key === 'activation_fee' || key === 'renew_subscription' || key === 'data')
                       .map(([key, label]) => (
                         <option key={key} value={key}>
                           {label}

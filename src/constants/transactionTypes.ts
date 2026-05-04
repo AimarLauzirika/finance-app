@@ -9,6 +9,7 @@ export const TRANSACTION_TYPES = {
   payout: 'Pago',
   dividends: 'Dividendos',
   income_tax: 'Impuesto Renta',
+  data: 'Data',
   // Agrega más tipos aquí si es necesario
 } as const;
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useFinance } from '../hooks/useFinance';
 import { formatCurrency } from '../utils/formatters';
@@ -9,7 +9,8 @@ import { es } from 'date-fns/locale';
 const Calendar: React.FC = () => {
   const { state } = useFinance();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'month' | 'week' | 'year'>('month');
+  const [viewMode, setViewMode] = useState<'month' | 'year'>('month');
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
   const monthStart = useMemo(() => startOfMonth(currentDate), [currentDate]);
   const monthEnd = useMemo(() => endOfMonth(currentDate), [currentDate]);
@@ -30,7 +31,7 @@ const Calendar: React.FC = () => {
       
       if (tx.type === 'payout' || tx.type === 'dividends') {
         map[dateKey] += tx.amount;
-      } else if (tx.type === 'buy_account' || tx.type === 'reset_account' || tx.type === 'activation_fee' || tx.type === 'renew_subscription' || tx.type === 'VPS' || tx.type === 'income_tax') {
+      } else if (tx.type === 'buy_account' || tx.type === 'reset_account' || tx.type === 'activation_fee' || tx.type === 'renew_subscription' || tx.type === 'VPS' || tx.type === 'income_tax' || tx.type === 'data') {
         map[dateKey] -= tx.amount;
       }
     });
@@ -41,6 +42,30 @@ const Calendar: React.FC = () => {
   const getDayResult = (day: Date): number => {
     const dateKey = format(day, 'yyyy-MM-dd');
     return resultsByDay[dateKey] ?? 0;
+  };
+
+  // Count transactions by day
+  const transactionsByDay = useMemo(() => {
+    const map: Record<string, typeof state.transactions> = {};
+    
+    state.transactions.forEach(tx => {
+      const dateKey = tx.date;
+      if (!map[dateKey]) {
+        map[dateKey] = [];
+      }
+      map[dateKey].push(tx);
+    });
+    
+    return map;
+  }, [state.transactions]);
+
+  const getDayTransactions = (day: Date) => {
+    const dateKey = format(day, 'yyyy-MM-dd');
+    return transactionsByDay[dateKey] ?? [];
+  };
+
+  const getDayTransactionCount = (day: Date): number => {
+    return getDayTransactions(day).length;
   };
 
   const getWeekResult = (weekStart: Date): number => {
@@ -79,11 +104,21 @@ const Calendar: React.FC = () => {
       const txMonth = getMonth(new Date(tx.date));
       
       if (txMonth === currentMonth && txYear === currentYear) {
-        const company = state.companies.find(c => c.id === tx.company_id);
-        const companyName = company?.name ?? 'Sin compañía';
+        // Get company from transaction: my_account_id -> account_id -> company_id
+        let companyName = 'Sin compañía';
+        if (tx.my_account_id) {
+          const myAccount = state.myAccounts.find(ma => ma.id === tx.my_account_id);
+          if (myAccount) {
+            const account = state.accounts.find(a => a.id === myAccount.account_id);
+            if (account) {
+              const company = state.companies.find(c => c.id === account.company_id);
+              companyName = company?.short_name ?? 'Sin compañía';
+            }
+          }
+        }
         
         const amount = (tx.type === 'payout' || tx.type === 'dividends') ? tx.amount :
-                      (tx.type === 'buy_account' || tx.type === 'reset_account' || tx.type === 'activation_fee' || tx.type === 'renew_subscription' || tx.type === 'VPS' || tx.type === 'income_tax') ? -tx.amount : 0;
+                      (tx.type === 'buy_account' || tx.type === 'reset_account' || tx.type === 'activation_fee' || tx.type === 'renew_subscription' || tx.type === 'VPS' || tx.type === 'income_tax' || tx.type === 'data') ? -tx.amount : 0;
         
         if (!results[companyName]) {
           results[companyName] = 0;
@@ -239,14 +274,6 @@ const Calendar: React.FC = () => {
             Mes
           </button>
           <button
-            onClick={() => setViewMode('week')}
-            className={`px-4 py-2 rounded text-sm ${
-              viewMode === 'week' ? 'bg-blue-600' : 'bg-gray-800 hover:bg-gray-700'
-            }`}
-          >
-            Semana
-          </button>
-          <button
             onClick={() => setViewMode('year')}
             className={`px-4 py-2 rounded text-sm ${
               viewMode === 'year' ? 'bg-blue-600' : 'bg-gray-800 hover:bg-gray-700'
@@ -279,23 +306,6 @@ const Calendar: React.FC = () => {
         </div>
       </div>
 
-      {/* Monthly Results by Company (only in month view) */}
-      {viewMode === 'month' && monthlyResultsByCompany.length > 0 && (
-        <div className="mb-6 bg-gray-800 p-4 rounded-lg">
-          <h3 className="text-lg text-gray-300 font-semibold mb-4">Resultados por Compañía</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {monthlyResultsByCompany.map((item, idx) => (
-              <div key={idx} className="bg-gray-700 p-3 rounded-lg">
-                <p className="text-xs text-gray-400 mb-2 truncate">{item.company}</p>
-                <p className={`font-bold text-sm ${getColorClass(item.total)}`}>
-                  {formatCurrency(item.total)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Calendar Grid */}
       <div className="flex-1 overflow-auto">
         {viewMode === 'month' ? (
@@ -318,14 +328,27 @@ const Calendar: React.FC = () => {
                     {week.map((day, dayIdx) => {
                       const dayResult = getDayResult(day);
                       const isCurrentMonth = isSameMonth(day, currentDate);
+                      const transactionCount = getDayTransactionCount(day);
                       return (
                         <div
                           key={dayIdx}
-                          className={`p-3 rounded text-center text-sm ${
-                            isCurrentMonth ? `bg-gray-700 ${getDayBgClass(dayResult)}` : 'bg-gray-900 opacity-50'
+                          onClick={() => isCurrentMonth && transactionCount > 0 && setSelectedDay(day)}
+                          className={`p-3 rounded text-center text-sm cursor-pointer transition-all ${
+                            isCurrentMonth
+                              ? transactionCount > 0
+                                ? `bg-gray-700 ${getDayBgClass(dayResult)} hover:bg-opacity-80 hover:shadow-md`
+                                : 'bg-gray-700'
+                              : 'bg-gray-900 opacity-50'
                           }`}
                         >
                           <p className="text-xs text-gray-400 mb-1">{format(day, 'd')}</p>
+                          {transactionCount > 0 ? (
+                            <p className="font-bold text-xs text-blue-400 mb-2">
+                              {transactionCount} transaccione{transactionCount > 1 ? 's' : ''}
+                            </p>
+                          ) : (
+                            <p className="font-bold text-xs text-gray-500 mb-2">-</p>
+                          )}
                           <p className={`font-bold text-xs ${getColorClass(dayResult)}`}>
                             {dayResult !== 0 ? formatCurrency(dayResult) : '-'}
                           </p>
@@ -343,46 +366,6 @@ const Calendar: React.FC = () => {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        ) : viewMode === 'week' ? (
-          // Week view
-          <div className="bg-gray-800 p-4 rounded-lg">
-            <div className="grid grid-cols-7 gap-2 mb-4">
-              {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sab', 'Dom'].map(day => (
-                <div key={day} className="text-center text-xs text-gray-500 font-semibold py-2">
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7 gap-2">
-              {weeks[0].map((day, dayIdx) => {
-                const dayResult = getDayResult(day);
-                const isCurrentMonth = isSameMonth(day, currentDate);
-                return (
-                  <div
-                    key={dayIdx}
-                    className={`p-4 rounded text-center ${
-                      isCurrentMonth ? `bg-gray-700 ${getDayBgClass(dayResult)}` : 'bg-gray-900 opacity-50'
-                    }`}
-                  >
-                    <p className="text-sm text-gray-400 mb-2">{format(day, 'EEE', { locale: es })}</p>
-                    <p className="text-lg mb-1">{format(day, 'd')}</p>
-                    <p className={`font-bold text-lg ${getColorClass(dayResult)}`}>
-                      {dayResult !== 0 ? formatCurrency(dayResult) : '-'}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 p-3 bg-gray-700 rounded">
-              <p className="text-sm text-gray-400">
-                Total semana: <span className={`font-bold text-lg ${getColorClass(getWeekResult(weeks[0][0]))}`}>
-                  {formatCurrency(getWeekResult(weeks[0][0]))}
-                </span>
-              </p>
             </div>
           </div>
         ) : (
@@ -435,6 +418,47 @@ const Calendar: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de transacciones del día */}
+      {selectedDay && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg shadow-lg w-full max-w-2xl max-h-96 overflow-auto m-4">
+            <div className="sticky top-0 bg-gray-800 flex items-center justify-between p-4 border-b border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-200">
+                Transacciones - {format(selectedDay, 'd MMMM yyyy', { locale: es })}
+              </h3>
+              <button
+                onClick={() => setSelectedDay(null)}
+                className="p-1 hover:bg-gray-700 rounded"
+              >
+                <X size={20} className="text-gray-400" />
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              {getDayTransactions(selectedDay).map((tx, idx) => {
+                const company = state.companies.find(c => c.id === tx.company_id);
+                const amount = tx.type === 'payout' || tx.type === 'dividends' ? tx.amount : -tx.amount;
+                return (
+                  <div key={idx} className="bg-gray-700 p-3 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-200">{tx.type}</p>
+                        {company && <p className="text-xs text-gray-400">{company.name}</p>}
+                        {tx.info && <p className="text-xs text-gray-500 mt-1">{tx.info}</p>}
+                      </div>
+                      <p className={`font-bold text-sm ${
+                        amount > 0 ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {formatCurrency(amount)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -45,7 +45,7 @@ const AccountList: React.FC<AccountListProps> = ({ onFilteredAccountsChange }) =
         return company?.short_name;
       })
       .filter(Boolean)
-  ));
+  )).sort();
 
   const uniqueStates = Array.from(new Set(state.myAccounts.map(account => account.state)));
 

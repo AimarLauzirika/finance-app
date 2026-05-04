@@ -13,9 +13,9 @@ const TransactionStatsHeader: React.FC<TransactionStatsHeaderProps> = ({ filtere
   const stats = useMemo(() => {
     const transactions = filteredTransactions || state.transactions;
 
-    // Total account costs (buy_account + reset_account + activation_fee + renew_subscription)
+    // Total account costs (buy_account + reset_account + activation_fee + renew_subscription + data)
     const totalExpenses = transactions
-      .filter(t => t.type === 'buy_account' || t.type === 'reset_account' || t.type === 'activation_fee' || t.type === 'renew_subscription')
+      .filter(t => t.type === 'buy_account' || t.type === 'reset_account' || t.type === 'activation_fee' || t.type === 'renew_subscription' || t.type === 'data')
       .reduce((sum, t) => sum + t.amount, 0);
 
     // Total payouts (sum of payout transactions)

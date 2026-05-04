@@ -15,7 +15,7 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ transactions }) => {
     <div className="w-full h-64 bg-transparent p-4 rounded-lg">
       <div className="flex items-center gap-2 mb-4">
         <span>{<ChartSpline className="inline h-6 w-6 text-gray-400" />}</span>
-        <h3 className="text-lg font-semibold text-gray-400">Evolución del Balance</h3>
+        <h3 className="text-lg font-semibold text-gray-400">Evolución de Resultados</h3>
       </div>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={balanceData}>

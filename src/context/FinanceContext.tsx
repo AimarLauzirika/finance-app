@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { FinanceState, Transaction, MyAccount, AccountTable, Company, ActiveAccount, BankAccount, FundResult } from '../types';
+import type { FinanceState, Transaction, MyAccount, AccountTable, Company, ActiveAccount, BankAccount, FundResult, EconomicEvent } from '../types';
 import { FinanceContext } from './FinanceContextObject';
 import { supabase } from '../lib/supabase';
 
@@ -13,6 +13,7 @@ const initialState: FinanceState = {
   activeAccounts: [],
   bankAccounts: [],
   fundResults: [],
+  economicEvents: [],
 };
 
 // Load initial data from Supabase
@@ -24,8 +25,9 @@ const getInitialData = async (): Promise<{
   activeAccounts: ActiveAccount[];
   bankAccounts: BankAccount[];
   fundResults: FundResult[];
+  economicEvents: EconomicEvent[];
 }> => {
-  const [transactionsRes, myAccountsRes, accountsRes, companiesRes, activeAccountsRes, bankAccountsRes, fundResultsRes] = await Promise.all([
+  const [transactionsRes, myAccountsRes, accountsRes, companiesRes, activeAccountsRes, bankAccountsRes, fundResultsRes, economicEventsRes] = await Promise.all([
     supabase
       .from('transactions')
       .select('*')
@@ -49,6 +51,9 @@ const getInitialData = async (): Promise<{
       .order('date', { ascending: false }),
     supabase
       .from('fund_results')
+      .select('*'),
+    supabase
+      .from('economic_events')
       .select('*'),
   ]);
 
@@ -114,7 +119,14 @@ const getInitialData = async (): Promise<{
     cut_profit: f.cut_profit,
   }));
 
-  return { transactions, myAccounts, accounts, companies, activeAccounts, bankAccounts, fundResults };
+  const economicEvents = (economicEventsRes.data || []).map((e: any) => ({
+    id: e.id,
+    date: e.date,
+    time: e.time,
+    title: e.title,
+  }));
+
+  return { transactions, myAccounts, accounts, companies, activeAccounts, bankAccounts, fundResults, economicEvents };
 };
 
 
@@ -124,7 +136,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   useEffect(() => {
     const loadData = async () => {
-      const { transactions, myAccounts, accounts, companies, activeAccounts, bankAccounts, fundResults } = await getInitialData();
+      const { transactions, myAccounts, accounts, companies, activeAccounts, bankAccounts, fundResults, economicEvents } = await getInitialData();
       setState({
         transactions,
         myAccounts,
@@ -133,6 +145,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         activeAccounts,
         bankAccounts,
         fundResults,
+        economicEvents,
       });
     };
     loadData();

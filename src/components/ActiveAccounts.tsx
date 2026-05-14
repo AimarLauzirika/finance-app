@@ -3,7 +3,33 @@ import { Pencil, PlusCircle, Save, X, Trash2 } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import type { ActiveAccount } from '../types';
 import { formatCurrency } from '../utils/formatters';
-import { isToday } from 'date-fns';
+import { isToday, format } from 'date-fns';
+
+// Convert event time from database format (HH:mm:ss±offset) to local timezone
+const convertEventTimeToLocal = (timeStr: string): string => {
+  // Parse format like '08:30:00-04' or '14:30:00+02'
+  const match = timeStr.match(/^(\d{1,2}):(\d{2}):(\d{2})([+-])(\d{1,2})$/);
+  if (!match) {
+    // Fallback for old format without offset
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const today = new Date();
+    const utcDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), hours, minutes, 0));
+    return format(utcDate, 'HH:mm');
+  }
+
+  const [, hoursStr, minutesStr, , sign, offsetStr] = match;
+  const hours = parseInt(hoursStr, 10);
+  const minutes = parseInt(minutesStr, 10);
+  const offset = parseInt(offsetStr, 10);
+  const offsetHours = sign === '+' ? offset : -offset;
+
+  // Create date in UTC by adjusting for the event's timezone offset
+  const today = new Date();
+  const utcHours = hours - offsetHours; // Convert to UTC
+  const utcDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), utcHours, minutes, 0));
+
+  return format(utcDate, 'HH:mm');
+};
 
 const ActiveAccounts: React.FC = () => {
   const {
@@ -82,6 +108,34 @@ const ActiveAccounts: React.FC = () => {
     return map;
   }, [state.fundResults]);
 
+  // Get economic events for today
+  const todaysEvents = useMemo(() => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    return state.economicEvents.filter(e => e.date === today);
+  }, [state.economicEvents]);
+
+  // Group events by time (converting from database format to local timezone)
+  const eventsByTime = useMemo(() => {
+    const grouped: Record<string, string[]> = {};
+    todaysEvents.forEach(event => {
+      const localTime = convertEventTimeToLocal(event.time);
+      if (!grouped[localTime]) {
+        grouped[localTime] = [];
+      }
+      grouped[localTime].push(event.title);
+    });
+    return Object.entries(grouped)
+      .map(([time, titles]) => ({ time, titles }))
+      .sort((a, b) => a.time.localeCompare(b.time));
+  }, [todaysEvents]);
+
+  // Check if there are pending events today
+  const hasPendingEvents = useMemo(() => {
+    const now = new Date();
+    const currentTime = format(now, 'HH:mm');
+    return eventsByTime.some(event => event.time > currentTime);
+  }, [eventsByTime]);
+
   const startEditing = (ref: string) => {
     setEditingRef(ref);
     setEditValues(activeAccountMap[ref] ?? {});
@@ -90,6 +144,13 @@ const ActiveAccounts: React.FC = () => {
   const cancelEditing = () => {
     setEditingRef(null);
     setEditValues({});
+  };
+
+  // Helper to check if a row should show the pulse indicator
+  const shouldShowPulseIndicator = (myAccount: any) => {
+    const account = state.accounts.find(a => a.id === myAccount.account_id);
+    const hasNewsColumn = account?.news_minutes !== undefined && account.news_minutes !== null;
+    return hasNewsColumn && hasPendingEvents;
   };
 
   const saveEdits = async () => {
@@ -130,6 +191,11 @@ const ActiveAccounts: React.FC = () => {
           <td colSpan={11} className="px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
+                {shouldShowPulseIndicator(myAccount) && (
+                  <div className="relative flex-shrink-0">
+                    <div className="w-2 h-2 bg-red-500 rounded-full pulse-indicator"></div>
+                  </div>
+                )}
                 {account && account.company_id && (
                   <img
                     src={`/logos/${companyShortName}.png`}
@@ -176,6 +242,11 @@ const ActiveAccounts: React.FC = () => {
       <tr key={myAccount.id} className={`border-b border-gray-600 ${isToday(activeAccount.last_trade) || (progress >= 1 && minDaysMet) ? 'bg-gray-700' : 'bg-transparent'} hover:bg-gray-800`}>
         <td className="px-4 py-3">
           <div className="flex items-center gap-3">
+            {shouldShowPulseIndicator(myAccount) && (
+              <div className="relative flex-shrink-0">
+                <div className="w-2 h-2 bg-red-500 rounded-full pulse-indicator"></div>
+              </div>
+            )}
             {account && account.company_id && (
               <img
                 src={`/src/assets/logos/${companyShortName}.png`}
@@ -430,6 +501,11 @@ const ActiveAccounts: React.FC = () => {
       <tr key={myAccount.id} className={`border-b border-gray-600 ${isToday(activeAccount.last_trade) || (progress >= 1 && minDaysMet) ? 'bg-gray-700' : 'bg-transparent'} hover:bg-gray-800`}>
         <td className="px-4 py-3">
           <div className="flex items-center gap-3">
+            {shouldShowPulseIndicator(myAccount) && (
+              <div className="relative flex-shrink-0">
+                <div className="w-2 h-2 bg-red-500 rounded-full pulse-indicator"></div>
+              </div>
+            )}
             {account && account.company_id && (
               <img
                 src={`/src/assets/logos/${companyShortName}.png`}
@@ -533,6 +609,51 @@ const ActiveAccounts: React.FC = () => {
         </div>
       </div>
 
+      {/* Three info sections */}
+      <div className="grid grid-cols-3 gap-4">
+        {/* Left section - Accounts to buy */}
+        <div className="bg-gray-900 p-4 rounded-lg shadow-md">
+          <h3 className="text-sm text-gray-400 font-semibold mb-3">Cuentas a Comprar</h3>
+          <p className="text-gray-500">Por definir</p>
+        </div>
+
+        {/* Middle section - Next withdrawal date */}
+        <div className="bg-gray-900 p-4 rounded-lg shadow-md">
+          <h3 className="text-sm text-gray-400 font-semibold mb-3">Próximo Retiro</h3>
+          <p className="text-gray-500">Por definir</p>
+        </div>
+
+        {/* Right section - Economic events */}
+        <div className="bg-gray-900 p-4 rounded-lg shadow-md">
+          <h3 className="text-sm text-gray-400 font-semibold mb-3">Noticias del Día</h3>
+          {eventsByTime.length === 0 ? (
+            <p className="text-gray-500 text-sm">Sin noticias hoy</p>
+          ) : (
+            <div className="space-y-2">
+              {eventsByTime.map((event, idx) => {
+                const now = new Date();
+                const currentTime = format(now, 'HH:mm');
+                const isPassed = event.time <= currentTime;
+                const title = event.titles.length > 1 ? 'Vários' : event.titles[0];
+
+                return (
+                  <div
+                    key={idx}
+                    className={`text-sm ${isPassed ? 'text-gray-600' : 'text-gray-300'}`}
+                  >
+                    <span className={`font-medium ${isPassed ? '' : 'text-blue-400'}`}>
+                      {event.time}
+                    </span>
+                    {' - '}
+                    <span>{title}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="flex-1 overflow-auto">
         {activeMyAccounts.length === 0 ? (
           <div className="bg-gray-900 p-6 rounded-lg shadow-md">
@@ -589,5 +710,30 @@ const ActiveAccounts: React.FC = () => {
     </div>
   );
 };
+
+// Add CSS for pulse animation
+const styles = `
+  .pulse-indicator {
+    animation: pulse-red 2s infinite;
+  }
+
+  @keyframes pulse-red {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.2);
+    }
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = styles;
+  document.head.appendChild(styleSheet);
+}
 
 export default ActiveAccounts;

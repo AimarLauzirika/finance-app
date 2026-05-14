@@ -149,7 +149,7 @@ const Calendar: React.FC = () => {
         const txYear = getYear(new Date(tx.date));
         const txMonth = getMonth(new Date(tx.date));
         const amount = (tx.type === 'payout' || tx.type === 'dividends') ? tx.amount : 
-                      (tx.type === 'buy_account' || tx.type === 'reset_account' || tx.type === 'activation_fee' || tx.type === 'renew_subscription' || tx.type === 'VPS' || tx.type === 'income_tax') ? -tx.amount : 0;
+                      (tx.type === 'buy_account' || tx.type === 'reset_account' || tx.type === 'activation_fee' || tx.type === 'renew_subscription' || tx.type === 'VPS' || tx.type === 'income_tax' || tx.type === 'data') ? -tx.amount : 0;
 
         if (txMonth === month && txYear === currentYear) {
           currentYearResult += amount;

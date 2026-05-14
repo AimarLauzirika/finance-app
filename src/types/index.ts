@@ -71,6 +71,13 @@ export interface BankAccount {
   plane_usd?: number;
 }
 
+export interface EconomicEvent {
+  id?: number;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm:ss±offset (e.g., '08:30:00-04')
+  title: string;
+}
+
 export interface FinanceState {
   transactions: Transaction[];
   myAccounts: MyAccount[];
@@ -79,6 +86,7 @@ export interface FinanceState {
   activeAccounts: ActiveAccount[];
   bankAccounts: BankAccount[];
   fundResults: FundResult[];
+  economicEvents: EconomicEvent[];
 }
 
 export type FinanceAction =

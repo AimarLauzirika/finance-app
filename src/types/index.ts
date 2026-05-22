@@ -23,6 +23,9 @@ export interface AccountTable {
   name: string;
   company_id: number;
   f_min_profit_days?: number;
+  e_min_profit_days?: number;
+  e_min_days?: number;
+  f_min_days?: number;
   a_profit_day_usd?: number;
   news_minutes?: number;
   e_ddd_usd?: number;

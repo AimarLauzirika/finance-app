@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pencil, PlusCircle, Save, X, Trash2 } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
-import type { ActiveAccount } from '../types';
+import type { ActiveAccount, AccountTable, Company, FundResult, MyAccount } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { isToday, format } from 'date-fns';
 
@@ -92,7 +92,7 @@ const ActiveAccounts: React.FC = () => {
   }, [state.companies]);
 
   const companiesById2 = useMemo(() => {
-    const map: Record<number, any> = {};
+    const map: Record<number, Company> = {};
     state.companies.forEach((c) => {
       map[c.id] = c;
     });
@@ -100,8 +100,8 @@ const ActiveAccounts: React.FC = () => {
   }, [state.companies]);
 
   const fundResultsMap = useMemo(() => {
-    const map: Record<string, any> = {};
-    state.fundResults.forEach((f) => {
+    const map: Record<string, FundResult> = {};
+    state.fundResults.forEach((f: FundResult) => {
       const key = `${f.account_id}-${f.criteria}`;
       map[key] = f;
     });
@@ -116,24 +116,28 @@ const ActiveAccounts: React.FC = () => {
 
   // Group events by time (converting from database format to local timezone)
   const eventsByTime = useMemo(() => {
-    const grouped: Record<string, string[]> = {};
+    const grouped: Record<string, { titles: string[]; isPending: boolean }> = {};
+    const now = new Date();
+    const currentTime = format(now, 'HH:mm');
+
     todaysEvents.forEach(event => {
       const localTime = convertEventTimeToLocal(event.time);
+      const isPending = localTime > currentTime;
       if (!grouped[localTime]) {
-        grouped[localTime] = [];
+        grouped[localTime] = { titles: [], isPending };
       }
-      grouped[localTime].push(event.title);
+      grouped[localTime].titles.push(event.title);
+      grouped[localTime].isPending = grouped[localTime].isPending || isPending;
     });
+
     return Object.entries(grouped)
-      .map(([time, titles]) => ({ time, titles }))
+      .map(([time, obj]) => ({ time, titles: obj.titles, isPending: obj.isPending }))
       .sort((a, b) => a.time.localeCompare(b.time));
   }, [todaysEvents]);
 
   // Check if there are pending events today
   const hasPendingEvents = useMemo(() => {
-    const now = new Date();
-    const currentTime = format(now, 'HH:mm');
-    return eventsByTime.some(event => event.time > currentTime);
+    return eventsByTime.some(event => event.isPending);
   }, [eventsByTime]);
 
   const startEditing = (ref: string) => {
@@ -146,10 +150,29 @@ const ActiveAccounts: React.FC = () => {
     setEditValues({});
   };
 
+  const getMinDaysInfo = (account: AccountTable | undefined, stage: string) => {
+    if (!account) return { threshold: 0, profitTarget: false };
+
+    if (stage?.startsWith('e')) {
+      const profitDays = account.e_min_profit_days ?? 0;
+      if (profitDays > 0) {
+        return { threshold: profitDays, profitTarget: true };
+      }
+      return { threshold: account.e_min_days ?? 0, profitTarget: false };
+    }
+
+    const fundProfitDays = account.f_min_profit_days ?? 0;
+    if (fundProfitDays > 0) {
+      return { threshold: fundProfitDays, profitTarget: true };
+    }
+    const fMinDays = (account as AccountTable & { f_min_days?: number }).f_min_days ?? 0;
+    return { threshold: fMinDays, profitTarget: false };
+  };
+
   // Helper to check if a row should show the pulse indicator
-  const shouldShowPulseIndicator = (myAccount: any) => {
+  const shouldShowPulseIndicator = (myAccount: MyAccount) => {
     const account = state.accounts.find(a => a.id === myAccount.account_id);
-    const hasNewsColumn = account?.news_minutes !== undefined && account.news_minutes !== null;
+    const hasNewsColumn = (account?.news_minutes ?? 0) > 0;
     return hasNewsColumn && hasPendingEvents;
   };
 
@@ -174,7 +197,7 @@ const ActiveAccounts: React.FC = () => {
     await addActiveAccount(newActive);
   };
 
-  const renderEstadoRow = (myAccount: any) => {
+  const renderEstadoRow = (myAccount: MyAccount) => {
     const activeAccount = activeAccountMap[myAccount.ref];
     const account = state.accounts.find(a => a.id === myAccount.account_id);
     const accountName = account?.name ?? 'Desconocida';
@@ -229,8 +252,8 @@ const ActiveAccounts: React.FC = () => {
       stage = '';
     }
 
-    // Check if minimum days are met
-    const minDaysMet = (activeAccount.profit_days ?? 0) >= (account?.f_min_profit_days ?? 0);
+    const { threshold: minDaysThreshold, profitTarget: minDaysUsesProfit } = getMinDaysInfo(account, stage);
+    const minDaysMet = (activeAccount.profit_days ?? 0) >= minDaysThreshold;
 
     // Determine progress bar color based on balance and minimum days
     let progressBarColor = 'bg-gray-600'; // Default: balance < target
@@ -344,7 +367,7 @@ const ActiveAccounts: React.FC = () => {
           )}
         </td>
         <td className="px-4 py-3 text-center">
-          {account && account.f_min_profit_days ? (
+          {minDaysThreshold > 0 ? (
             editingRef === myAccount.ref ? (
               <div className="flex items-center justify-center gap-2">
                 <input
@@ -354,11 +377,12 @@ const ActiveAccounts: React.FC = () => {
                   onChange={(e) => setEditValues(prev => ({ ...prev, profit_days: parseInt(e.target.value) || 0 }))}
                   className="w-16 rounded bg-gray-900 px-2 py-1 text-gray-200 text-center"
                 />
-                <span className="text-gray-300">/ {account.f_min_profit_days}</span>
+                <span className="text-gray-300">/ {minDaysThreshold}</span>
               </div>
             ) : (
               <span className="text-gray-300">
-                {activeAccount.profit_days ?? 0} / {account.f_min_profit_days} de ${Math.round(account.a_profit_day_usd ?? 0)}
+                {activeAccount.profit_days ?? 0} / {minDaysThreshold}
+                {minDaysUsesProfit && ` de $${Math.round(account?.a_profit_day_usd ?? 0)}`}
               </span>
             )
           ) : (
@@ -421,7 +445,7 @@ const ActiveAccounts: React.FC = () => {
     );
   };
 
-  const renderOperativaRow = (myAccount: any) => {
+  const renderOperativaRow = (myAccount: MyAccount) => {
     const activeAccount = activeAccountMap[myAccount.ref];
     const account = state.accounts.find(a => a.id === myAccount.account_id);
     const accountName = account?.name ?? 'Desconocida';
@@ -488,8 +512,8 @@ const ActiveAccounts: React.FC = () => {
     const autoClose = company?.auto_close !== false;
     const dddSoftBreach = company?.ddd_soft_breach === true;
 
-    // Check if minimum days are met
-    const minDaysMet = (activeAccount.profit_days ?? 0) >= (account?.f_min_profit_days ?? 0);
+    const { threshold: minDaysThreshold, profitTarget: minDaysUsesProfit } = getMinDaysInfo(account, stage);
+    const minDaysMet = (activeAccount.profit_days ?? 0) >= minDaysThreshold;
 
     // Determine progress bar color based on balance and minimum days
     let progressBarColor = 'bg-gray-600'; // Default: balance < target
@@ -553,9 +577,10 @@ const ActiveAccounts: React.FC = () => {
           ${Math.round(dddValue)}
         </td>
         <td className="px-4 py-3 text-center">
-          {account && account.f_min_profit_days ? (
+          {minDaysThreshold > 0 ? (
             <span className="text-gray-300">
-              {activeAccount.profit_days ?? 0} / {account.f_min_profit_days} de ${Math.round(account.a_profit_day_usd ?? 0)}
+              {activeAccount.profit_days ?? 0} / {minDaysThreshold}
+              {minDaysUsesProfit && ` de $${Math.round(account?.a_profit_day_usd ?? 0)}`}
             </span>
           ) : (
             <span className="text-gray-500">-</span>
@@ -631,21 +656,23 @@ const ActiveAccounts: React.FC = () => {
           ) : (
             <div className="space-y-2">
               {eventsByTime.map((event, idx) => {
-                const now = new Date();
-                const currentTime = format(now, 'HH:mm');
-                const isPassed = event.time <= currentTime;
                 const title = event.titles.length > 1 ? 'Vários' : event.titles[0];
 
                 return (
                   <div
                     key={idx}
-                    className={`text-sm ${isPassed ? 'text-gray-600' : 'text-gray-300'}`}
+                    className={`text-sm p-2 ${event.isPending ? 'text-gray-300 bg-red-600 bg-opacity-15 rounded border border-red-900' : 'text-gray-600'}`}
                   >
-                    <span className={`font-medium ${isPassed ? '' : 'text-blue-400'}`}>
-                      {event.time}
+                    <span className="inline-flex items-center gap-2">
+                      {event.isPending && (
+                        <span className="w-2 h-2 bg-red-500 rounded-full pulse-indicator flex-shrink-0" />
+                      )}
+                      <span className={`font-small ${event.isPending ? 'text-gray-400' : ''}`}>
+                        {event.time}
+                      </span>
                     </span>
                     {' - '}
-                    <span>{title}</span>
+                      <span>{title}</span>
                   </div>
                 );
               })}
@@ -723,7 +750,7 @@ const styles = `
       transform: scale(1);
     }
     50% {
-      opacity: 0.5;
+      opacity: 0.2;
       transform: scale(1.2);
     }
   }

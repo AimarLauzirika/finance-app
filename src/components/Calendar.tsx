@@ -93,6 +93,82 @@ const Calendar: React.FC = () => {
     return daysInMonth > 0 ? monthResult / daysInMonth : 0;
   }, [monthResult, monthStart, monthEnd]);
 
+  // Yearly / quarterly / monthly aggregates for Year view
+  const yearAggregates = useMemo(() => {
+    const currentYear = currentDate.getFullYear();
+    const previousYear = currentYear - 1;
+
+    // YTD: sum of all transactions in current year
+    let ytd = 0;
+    const monthlyTotals: number[] = Array(12).fill(0);
+    const quarterlyTotals: number[] = [0, 0, 0, 0];
+    const previousYearQuarterlyTotals: number[] = [0, 0, 0, 0];
+
+    // Historical maps to compute best/worst across all years
+    const histMonthly: Record<string, number> = {}; // 'YYYY-MM' -> total
+    const histQuarterly: Record<string, number> = {}; // 'YYYY-Q#' -> total
+
+    state.transactions.forEach(tx => {
+      const dt = new Date(tx.date);
+      const y = getYear(dt);
+      const m = getMonth(dt);
+      const amount = (tx.type === 'payout' || tx.type === 'dividends') ? tx.amount : 
+                    (tx.type === 'buy_account' || tx.type === 'reset_account' || tx.type === 'activation_fee' || tx.type === 'renew_subscription' || tx.type === 'VPS' || tx.type === 'income_tax' || tx.type === 'data') ? -tx.amount : 0;
+
+      if (y === currentYear) {
+        ytd += amount;
+        monthlyTotals[m] += amount;
+        const q = Math.floor(m / 3);
+        quarterlyTotals[q] += amount;
+      } else if (y === previousYear) {
+        const q = Math.floor(m / 3);
+        previousYearQuarterlyTotals[q] += amount;
+      }
+
+      // accumulate historical month key
+      const monthKey = `${y}-${String(m + 1).padStart(2, '0')}`;
+      histMonthly[monthKey] = (histMonthly[monthKey] ?? 0) + amount;
+
+      // accumulate historical quarter key
+      const qIndex = Math.floor(m / 3) + 1; // 1-based quarter
+      const quarterKey = `${y}-Q${qIndex}`;
+      histQuarterly[quarterKey] = (histQuarterly[quarterKey] ?? 0) + amount;
+    });
+
+    // Best/worst historical quarter
+    let bestQuarterLabel = '';
+    let worstQuarterLabel = '';
+    let bestQuarterValue = Number.NEGATIVE_INFINITY;
+    let worstQuarterValue = Number.POSITIVE_INFINITY;
+    Object.entries(histQuarterly).forEach(([key, val]) => {
+      if (val > bestQuarterValue) { bestQuarterValue = val; bestQuarterLabel = key; }
+      if (val < worstQuarterValue) { worstQuarterValue = val; worstQuarterLabel = key; }
+    });
+
+    // Best/worst historical month
+    let bestMonthLabel = '';
+    let worstMonthLabel = '';
+    let bestMonthValue = Number.NEGATIVE_INFINITY;
+    let worstMonthValue = Number.POSITIVE_INFINITY;
+    Object.entries(histMonthly).forEach(([key, val]) => {
+      if (val > bestMonthValue) { bestMonthValue = val; bestMonthLabel = key; }
+      if (val < worstMonthValue) { worstMonthValue = val; worstMonthLabel = key; }
+    });
+
+    return {
+      ytd,
+      quarterlyTotals,
+      previousYearQuarterlyTotals,
+      monthlyTotals,
+      bestQuarter: { label: bestQuarterLabel, value: isFinite(bestQuarterValue) ? bestQuarterValue : 0 },
+      worstQuarter: { label: worstQuarterLabel, value: isFinite(worstQuarterValue) ? worstQuarterValue : 0 },
+      bestMonth: { label: bestMonthLabel, value: isFinite(bestMonthValue) ? bestMonthValue : 0 },
+      worstMonth: { label: worstMonthLabel, value: isFinite(worstMonthValue) ? worstMonthValue : 0 },
+    };
+  }, [currentDate, state.transactions]);
+
+  const QUARTER_MONTH_TARGET = 6000; // objetivo a mostrar
+
   // Calculate monthly results by company
   const monthlyResultsByCompany = useMemo(() => {
     const results: Record<string, number> = {};
@@ -172,34 +248,13 @@ const Calendar: React.FC = () => {
   const quarterlyData = useMemo(() => {
     const currentYear = currentDate.getFullYear();
     const previousYear = currentYear - 1;
-    const quarters = [];
 
-    for (let q = 0; q < 4; q++) {
-      let currentYearResult = 0;
-      let previousYearResult = 0;
-      const monthsInQuarter = [q * 3, q * 3 + 1, q * 3 + 2];
-
-      state.transactions.forEach(tx => {
-        const txYear = getYear(new Date(tx.date));
-        const txMonth = getMonth(new Date(tx.date));
-        const amount = (tx.type === 'payout' || tx.type === 'dividends') ? tx.amount : 
-                      (tx.type === 'buy_account' || tx.type === 'reset_account' || tx.type === 'activation_fee' || tx.type === 'renew_subscription' || tx.type === 'VPS' || tx.type === 'income_tax') ? -tx.amount : 0;
-
-        if (monthsInQuarter.includes(txMonth)) {
-          if (txYear === currentYear) currentYearResult += amount;
-          else if (txYear === previousYear) previousYearResult += amount;
-        }
-      });
-
-      quarters.push({
-        quarter: `Q${q + 1}`,
-        currentYear: currentYearResult,
-        previousYear: previousYearResult,
-      });
-    }
-
-    return quarters;
-  }, [currentDate, state.transactions]);
+    return Array.from({ length: 4 }, (_, q) => ({
+      quarter: `Q${q + 1}`,
+      [currentYear.toString()]: yearAggregates.quarterlyTotals[q] ?? 0,
+      [previousYear.toString()]: yearAggregates.previousYearQuarterlyTotals[q] ?? 0,
+    }));
+  }, [currentDate, yearAggregates]);
 
   const weeks = useMemo(() => {
     const w: Date[][] = [];
@@ -232,6 +287,10 @@ const Calendar: React.FC = () => {
     if (value < 0) return 'bg-red-900 bg-opacity-20';
     return '';
   };
+
+  const getFixedQuarterIndex = (date: Date) => Math.floor(getMonth(date) / 3);
+  const getFixedQuarterLabel = (quarterIndex: number) => `Q${quarterIndex + 1}`;
+  const currentFixedQuarter = getFixedQuarterIndex(currentDate);
 
   return (
     <div className="bg-gray-900 p-6 rounded-lg shadow-md h-full flex flex-col">
@@ -285,26 +344,66 @@ const Calendar: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-gray-800 p-4 rounded-lg text-center">
-          <p className="text-xs text-gray-400 mb-1">Total Mes</p>
-          <p className={`text-lg font-bold ${getColorClass(monthResult)}`}>
-            {formatCurrency(monthResult)}
-          </p>
+      {viewMode === 'month' ? (
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-gray-800 p-4 rounded-lg text-center">
+            <p className="text-xs text-gray-400 mb-1">Total Mes</p>
+            <p className={`text-lg font-bold ${getColorClass(monthResult)}`}>
+              {formatCurrency(monthResult)}
+            </p>
+          </div>
+          <div className="bg-gray-800 p-4 rounded-lg text-center">
+            <p className="text-xs text-gray-400 mb-1">Media Diaria</p>
+            <p className={`text-lg font-bold ${getColorClass(monthAverage)}`}>
+              {formatCurrency(monthAverage)}
+            </p>
+          </div>
+          <div className="bg-gray-800 p-4 rounded-lg text-center">
+            <p className="text-xs text-gray-400 mb-1">Días Positivos</p>
+            <p className="text-lg font-bold text-gray-300">
+              {calendarDays.filter(day => isSameMonth(day, currentDate) && getDayResult(day) > 0).length}
+            </p>
+          </div>
         </div>
-        <div className="bg-gray-800 p-4 rounded-lg text-center">
-          <p className="text-xs text-gray-400 mb-1">Media Diaria</p>
-          <p className={`text-lg font-bold ${getColorClass(monthAverage)}`}>
-            {formatCurrency(monthAverage)}
-          </p>
+      ) : (
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="bg-gray-800 p-4 rounded-lg text-center">
+            <p className="text-sm font-bold text-gray-400 mb-2">YTD</p>
+            <p className={`text-lg font-bold ${getColorClass(yearAggregates.ytd)}`}>
+              {formatCurrency(yearAggregates.ytd)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">Total acumulado año actual</p>
+          </div>
+
+          <div className="bg-gray-800 p-4 rounded-lg text-center">
+            <p className="text-sm font-bold text-gray-400 mb-2">{getFixedQuarterLabel(currentFixedQuarter)}</p>
+            <p className={`text-lg font-bold ${getColorClass(yearAggregates.quarterlyTotals[currentFixedQuarter] ?? 0)}`}>
+              {formatCurrency(yearAggregates.quarterlyTotals[currentFixedQuarter] ?? 0)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">Objetivo: {formatCurrency(QUARTER_MONTH_TARGET)}</p>
+          </div>
+
+          <div className="bg-gray-800 p-4 rounded-lg text-center">
+            <p className="text-sm font-bold text-gray-400 mb-2">Mejor / Peor Trimestre</p>
+            <p className={`text-sm text-gray-400 ${yearAggregates.bestQuarter.value}`}>
+              Mejor: <span className={`${getColorClass(yearAggregates.bestQuarter.value)}`}>{formatCurrency(yearAggregates.bestQuarter.value)}</span> ({yearAggregates.bestQuarter.label.replace('-', ' ')})
+            </p>
+            <p className={`text-sm text-gray-400 ${yearAggregates.worstQuarter.value}`}>
+              Peor: <span className={`${getColorClass(yearAggregates.worstQuarter.value)}`}>{formatCurrency(yearAggregates.worstQuarter.value)}</span> ({yearAggregates.worstQuarter.label.replace('-', ' ')})
+            </p>
+          </div>
+
+          <div className="bg-gray-800 p-4 rounded-lg text-center">
+            <p className="text-sm font-bold text-gray-400 mb-2">Mejor / Peor Mes</p>
+            <p className={`text-sm text-gray-400 ${yearAggregates.bestMonth.value}`}>
+              Mejor: <span className={`${getColorClass(yearAggregates.bestMonth.value)}`}>{formatCurrency(yearAggregates.bestMonth.value)}</span> ({(() => { const [y, m] = yearAggregates.bestMonth.label.split('-'); return format(new Date(parseInt(y,10), parseInt(m,10)-1, 1), 'MMM yyyy'); })()})
+            </p>
+            <p className={`text-sm text-gray-400 ${yearAggregates.worstMonth.value}`}>
+              Peor: <span className={`${getColorClass(yearAggregates.worstMonth.value)}`}>{formatCurrency(yearAggregates.worstMonth.value)}</span> ({(() => { const [y, m] = yearAggregates.worstMonth.label.split('-'); return format(new Date(parseInt(y,10), parseInt(m,10)-1, 1), 'MMM yyyy'); })()})
+            </p>
+          </div>
         </div>
-        <div className="bg-gray-800 p-4 rounded-lg text-center">
-          <p className="text-xs text-gray-400 mb-1">Días Positivos</p>
-          <p className="text-lg font-bold text-gray-300">
-            {calendarDays.filter(day => isSameMonth(day, currentDate) && getDayResult(day) > 0).length}
-          </p>
-        </div>
-      </div>
+      )}
 
       {/* Calendar Grid */}
       <div className="flex-1 overflow-auto">
@@ -344,7 +443,7 @@ const Calendar: React.FC = () => {
                           <p className="text-xs text-gray-400 mb-1">{format(day, 'd')}</p>
                           {transactionCount > 0 ? (
                             <p className="font-bold text-xs text-blue-400 mb-2">
-                              {transactionCount} transaccione{transactionCount > 1 ? 's' : ''}
+                              {transactionCount} {transactionCount > 1 ? 'transacciones' : 'transacción'}
                             </p>
                           ) : (
                             <p className="font-bold text-xs text-gray-500 mb-2">-</p>
@@ -400,14 +499,14 @@ const Calendar: React.FC = () => {
                     <div className="space-y-2">
                       <div>
                         <p className="text-xs text-gray-500">Año Actual</p>
-                        <p className={`font-bold ${getColorClass(quarter.currentYear)}`}>
-                          {formatCurrency(quarter.currentYear)}
+                        <p className={`font-bold ${getColorClass(quarter[currentDate.getFullYear().toString()] as number)}`}>
+                          {formatCurrency(quarter[currentDate.getFullYear().toString()] as number)}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">Año Anterior</p>
-                        <p className={`font-bold text-sm opacity-70 ${getColorClass(quarter.previousYear)}`}>
-                          {formatCurrency(quarter.previousYear)}
+                        <p className={`font-bold text-sm opacity-70 ${getColorClass(quarter[(currentDate.getFullYear() - 1).toString()] as number)}`}>
+                          {formatCurrency(quarter[(currentDate.getFullYear() - 1).toString()] as number)}
                         </p>
                       </div>
                     </div>
@@ -421,8 +520,14 @@ const Calendar: React.FC = () => {
 
       {/* Modal de transacciones del día */}
       {selectedDay && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg shadow-lg w-full max-w-2xl max-h-96 overflow-auto m-4">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setSelectedDay(null)}
+        >
+          <div 
+            className="bg-gray-800 rounded-lg shadow-lg w-full max-w-2xl max-h-96 overflow-auto m-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="sticky top-0 bg-gray-800 flex items-center justify-between p-4 border-b border-gray-700">
               <h3 className="text-lg font-semibold text-gray-200">
                 Transacciones - {format(selectedDay, 'd MMMM yyyy', { locale: es })}
@@ -436,14 +541,17 @@ const Calendar: React.FC = () => {
             </div>
             <div className="p-4 space-y-3">
               {getDayTransactions(selectedDay).map((tx, idx) => {
-                const company = state.companies.find(c => c.id === tx.company_id);
+                const myAccount = state.myAccounts.find(ma => ma.id === tx.my_account_id);
+                const account = myAccount ? state.accounts.find(a => a.id === myAccount.account_id) : null;
+                const company = account ? state.companies.find(c => c.id === account.company_id) : null;
                 const amount = tx.type === 'payout' || tx.type === 'dividends' ? tx.amount : -tx.amount;
                 return (
                   <div key={idx} className="bg-gray-700 p-3 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-200">{tx.type}</p>
-                        {company && <p className="text-xs text-gray-400">{company.name}</p>}
+                        {company && <p className="text-xs text-gray-300 font-semibold">{company.short_name || company.long_name}</p>}
+                        {account && <p className="text-xs text-gray-400">{account.name}</p>}
+                        <p className="text-sm font-semibold text-gray-200 mt-1">{tx.type}</p>
                         {tx.info && <p className="text-xs text-gray-500 mt-1">{tx.info}</p>}
                       </div>
                       <p className={`font-bold text-sm ${

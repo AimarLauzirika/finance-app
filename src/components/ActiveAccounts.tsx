@@ -3,7 +3,7 @@ import { Pencil, PlusCircle, Save, X, Trash2 } from 'lucide-react';
 import { useFinance } from '../hooks/useFinance';
 import type { ActiveAccount, AccountTable, Company, FundResult, MyAccount } from '../types';
 import { formatCurrency } from '../utils/formatters';
-import { isToday, format } from 'date-fns';
+import { isToday, format, isFuture } from 'date-fns';
 
 // Convert event time from database format (HH:mm:ss±offset) to local timezone
 const convertEventTimeToLocal = (timeStr: string): string => {
@@ -522,7 +522,7 @@ const ActiveAccounts: React.FC = () => {
     }
 
     return (
-      <tr key={myAccount.id} className={`border-b border-gray-600 ${isToday(activeAccount.last_trade) || (progress >= 1 && minDaysMet) ? 'bg-gray-700' : 'bg-transparent'} hover:bg-gray-800`}>
+      <tr key={myAccount.id} className={`border-b border-gray-600 ${isToday(activeAccount.last_trade) || isFuture(activeAccount.last_trade) || (progress >= 1 && minDaysMet) ? 'bg-gray-700' : 'bg-transparent'} hover:bg-gray-800`}>
         <td className="px-4 py-3">
           <div className="flex items-center gap-3">
             {shouldShowPulseIndicator(myAccount) && (

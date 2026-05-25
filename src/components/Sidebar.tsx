@@ -51,11 +51,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, onL
           <li>
             <button
               onClick={() => onViewChange('active')}
-              className={`w-full text-left px-4 py-2 rounded flex items-center space-x-2 ${
-                currentView === 'active' ? 'bg-blue-600' : 'hover:bg-gray-700'
+              className={`w-full text-left text-green-400 px-4 py-2 rounded flex items-center space-x-2 ${
+                currentView === 'active' ? 'bg-green-600 text-white' : 'hover:bg-gray-700'
               }`}
             >
-              <Activity size={20} />
+              <Activity size={20}  />
               <span>Active Accounts</span>
             </button>
           </li>
